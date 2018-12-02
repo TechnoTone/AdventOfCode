@@ -26,3 +26,16 @@ $counts | % {
 Write-Host "Part 1 = $checksum" -ForegroundColor Cyan
 
 #Part 2
+
+$regEx = [regex]"\b([a-z]ig|b[a-z]g|bi[a-z])\b"
+
+for ($i = 0; $i -lt $data.Count; $i++) {
+    $line = $data[$i]
+    for ($n = 0; $n -lt $line.Length; $n++) {
+        $line2 = $line.Remove($n,1).Insert($n,".")
+        if (($data[$i..$data.Count] -match $line2).Count -gt 1) {
+            Write-Host "Part 2 = "$line2.Replace(".","")
+        }
+    }
+}
+

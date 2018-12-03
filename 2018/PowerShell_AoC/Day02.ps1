@@ -1,7 +1,7 @@
 ﻿
 #Part 1
 
-$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day02.data)
+$data = cat (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day02.data)
 
 $counts = @(0)*30
 
@@ -26,8 +26,6 @@ $counts | % {
 Write-Host "Part 1 = $checksum" -ForegroundColor Cyan
 
 #Part 2
-
-$regEx = [regex]"\b([a-z]ig|b[a-z]g|bi[a-z])\b"
 
 for ($i = 0; $i -lt $data.Count; $i++) {
     $line = $data[$i]

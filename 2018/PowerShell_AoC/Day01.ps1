@@ -1,7 +1,7 @@
 ﻿
 #Part 1
 
-$data = cat .\Day01.data
+$data = cat (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day01.data)
 
 $total = 0
 
@@ -27,4 +27,3 @@ do {
         $totals = $totals + $total
     }
 } until ($false)
-

@@ -6,9 +6,8 @@ inputData :: IO String
 inputData = readFile "../data/Day01.data"
 
 solve :: IO ()
-solve = inputData >>= (\str -> putStrLn (amazingPureFunction str))
+solve = inputData >>= (\str -> putStrLn (processData str))
 
-amazingPureFunction :: String -> String
-amazingPureFunction = id  
-
+processData :: String -> String
+processData = id  
 

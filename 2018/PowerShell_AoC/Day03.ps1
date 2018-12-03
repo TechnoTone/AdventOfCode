@@ -1,7 +1,8 @@
 ﻿
-#Part 1
-
 $data = cat (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day03.data)
+
+
+#Part 1
 
 $cloth = New-Object "int[,]" 1000,1000
 

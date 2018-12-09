@@ -1,8 +1,6 @@
 
-$start = Get-Date
-
-$data = Import-Csv (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day09.data)
-
+$data = Import-Csv (Join-Path ($PSCommandPath | Split-Path -Parent) Day09.data)
+        
 function padLeft($what, $padding, $length) {
     (($padding*$length)+$what).Substring($what.ToString().Length)
 }
@@ -34,6 +32,8 @@ function getPrev($circle, $node, $count = 1) {
 
 function play ($row) {
 
+    $showCircle = $false
+
     $players = [int]$row.Players
     $scores = New-Object "long[]" ($players+1)
 
@@ -44,7 +44,9 @@ function play ($row) {
     $circle.Add(0)
     $current = $circle.First
 
-    #showCircle -1 $circle $current
+    if ($showCircle) {
+        showCircle -1 $circle $current
+    }
     
     while ($next -lt $row.LastMarble) {
         $next++
@@ -59,48 +61,69 @@ function play ($row) {
             $current = $circle.AddAfter($current, $next)
         }
 
-        #showCircle $player $circle $current
+        if ($showCircle) {
+            showCircle $player $circle $current
+        }
     }
     
-    #write-host ""
     $highestPlayer = 0
     $highestScore = 0
     for ($p=1; $p -le $scores.Count-1; $p++) {
-        #Write-Host ("{0}: {1}" -f $p,$scores[$p]) -ForegroundColor Green
         if ($highestScore -lt $scores[$p]) {
             $highestPlayer = $p
             $highestScore = $scores[$p]
         }
     }
-    #Write-Host
     return $highestScore
 
 }
 
 
+
+#Examples
+
+Write-Host
+"Players  LastMarble  ExpectedHighScore  HighestScore" | Write-Host -ForegroundColor DarkGray
+"----------------------------------------------------" | Write-Host -ForegroundColor DarkGray
+
 foreach ($row in $data[0..5]) {
+
     $row.HighestScore = play $row
+
+    $line = (padLeft $row.Players " " 7) +
+            (padLeft $row.LastMarble " " 12) +
+            (padLeft $row.ExpectedHighScore " " 19) +
+            (padLeft $row.HighestScore " " 14)
+    
+    if ($row.ExpectedHighScore -eq $row.HighestScore) {
+        $line | Write-Host -ForegroundColor Green
+    } else {
+        $line | Write-Host -ForegroundColor Red
+    }
 }
 
-
-$data
 return
 
+
 #Part 1
+
+$start = Get-Date
 
 $row = $data[6]
 $row.HighestScore = play $row
 $answer1 = $row.HighestScore
 
-Write-Host ("Part 1 = {0} ({1})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+Write-Host ("Part 1 = {0} ({1:0.0000} seconds)" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 
 #Part 2
+
+$start = Get-Date
 
 $row = $data[7]
 $row.HighestScore = play $row
 $answer2 = $row.HighestScore
 
-Write-Host ("Part 2 = {0} ({1})" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+Write-Host ("Part 2 = {0} ({1:0.0000} seconds)" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 $data

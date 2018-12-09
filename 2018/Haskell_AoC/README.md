@@ -1,1 +1,0 @@
-# HaskellAdventOfCode2018

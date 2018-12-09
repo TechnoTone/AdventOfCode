@@ -1,8 +1,5 @@
 
-
-$start = Get-Date
-
-$data = cat (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day07.data)
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day07.data)
 
 function newPair ([string] $s) {
     [PSCustomObject] @{
@@ -27,6 +24,8 @@ $steps = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.ToCharArray() | % {
 
 #Part 1
 
+$start = Get-Date
+
 $toDo = $steps
 $answer1 = ""
 
@@ -36,11 +35,13 @@ while ($toDo) {
     $toDo = $toDo | ? {$_ -ne $next}
 }
 
-Write-Host ("Part 1 = {0} ({1})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+Write-Host ("Part 1 = {0} ({1:0.0000} seconds)" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 #AEMNPOJWISZCDFUKBXQTHVLGRY
 
 
 #Part 2
+
+$start = Get-Date
 
 $toDo = $steps
 $answer2 = ""
@@ -113,4 +114,4 @@ while ($toDo) {
 
 $answer2 = $T
 
-Write-Host ("Part 2 = {0} ({1})" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+Write-Host ("Part 2 = {0} ({1:0.0000} seconds)" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan

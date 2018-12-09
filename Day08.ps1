@@ -1,8 +1,5 @@
 
-
-$start = Get-Date
-
-$data = cat (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day08.data)
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day08.data)
 $data = $data -split " " | % {[int]$_}
 
 function node() {
@@ -46,6 +43,8 @@ $tree = parseData $context
 
 #Part 1
 
+$start = Get-Date
+
 function sumMetaData ($node) {
     $md = 0
     if ($node) {
@@ -58,11 +57,13 @@ function sumMetaData ($node) {
 $answer1 = sumMetaData $tree
 
 
-Write-Host ("Part 1 = {0} ({1})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+Write-Host ("Part 1 = {0} ({1:0.0000} seconds)" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 
 
 #Part 2
+
+$start = Get-Date
 
 function sumMetaData2 ($node) {
     $md = 0
@@ -84,6 +85,5 @@ function sumMetaData2 ($node) {
 
 $answer2 = sumMetaData2 $tree
 
-Write-Host ("Part 2 = {0} ({1})" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
-
+Write-Host ("Part 2 = {0} ({1:0.0000} seconds)" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 

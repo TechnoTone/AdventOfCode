@@ -1,8 +1,10 @@
 ﻿
 #Part 1
 
+$start = Get-Date
+
 $guard = 0
-$data = cat (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day04.data) |
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day04.data) |
         % {
             [PSCustomObject]@{
                 When = Get-Date ($_.Substring(1,16))
@@ -50,11 +52,14 @@ $minutes = foreach ($minute in @(0..59)) {
 
 $bestMinute = $minutes | sort -Descending SleepCount | select -First 1
 
-Write-Host "Part 1 = " ([int]::Parse($bestGuard.Name) * $bestMinute.Minute) -ForegroundColor Cyan
+$answer1 = [int]::Parse($bestGuard.Name) * $bestMinute.Minute
+Write-Host ("Part 1 = {0} ({1:0.0000} seconds)" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 
 
 #Part 2
+
+$start = Get-Date
 
 foreach ($guard in $guards) {
     $minutes = foreach ($minute in @(0..59)) {
@@ -71,6 +76,7 @@ foreach ($guard in $guards) {
 
 $guards | sort -Descending MostAsleepCount | select -First 1 | % {
 
-    Write-Host "Part 2 = " ([int]::Parse($_.Name) * $_.MostAsleepOn) -ForegroundColor Cyan
+    $answer2 = [int]::Parse($_.Name) * $_.MostAsleepOn
+    Write-Host ("Part 2 = {0} ({1:0.0000} seconds)" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 }

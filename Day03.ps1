@@ -1,8 +1,10 @@
 ﻿
-$data = cat (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day03.data)
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day03.data)
 
 
 #Part 1
+
+$start = Get-Date
 
 $cloth = New-Object "int[,]" 1000,1000
 
@@ -16,13 +18,15 @@ foreach ($line in $data) {
     }
 }
 
-$overlaps = ($cloth | ? {$_ -gt 1}).Count
+$answer1 = ($cloth | ? {$_ -gt 1}).Count
 
-Write-Host "Part 1 = $overlaps" -ForegroundColor Cyan
+Write-Host ("Part 1 = {0} ({1:0.0000} seconds)" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 
 
 #Part 2
+
+$start = Get-Date
 
 foreach ($line in $data) {
     $parts = $line.Replace(" ","").Split("@,x:") | % {try{[int]$_}catch{}}
@@ -35,7 +39,8 @@ foreach ($line in $data) {
         }
     }
     if ($ok) {
-        Write-Host "Part 2 = $line" -ForegroundColor Cyan
+        $answer2 = $line
+        Write-Host ("Part 2 = {0} ({1:0.0000} seconds)" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
         exit
     }
 }

@@ -1,7 +1,5 @@
 
-$start = Get-Date
-
-$data = cat (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day06.data)
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day06.data)
 
 function location ($x,$y) {
     [PSCustomObject]@{x=[int]($x);y=[int]($y);finite=$true}
@@ -52,6 +50,8 @@ foreach ($y in @(0..$yMax)) {
 
 #Part 1
 
+$start = Get-Date
+
 $map = New-Object "Int[,]" ($xMax+1),($yMax+1)
 $map2 = New-Object "Int[,]" ($xMax+1),($yMax+1)
 
@@ -70,12 +70,14 @@ foreach ($x in @(0..$xMax)) {
 $answer = $map | ? {$data[$_].finite -and $_ -ge 0} | group -NoElement | sort -Descending Count | select -ExpandProperty Count -First 1
 
 
-Write-Host ("Part 1 = {0} ({1})" -f $answer,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+Write-Host ("Part 1 = {0} ({1:0.0000} seconds)" -f $answer,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 
 
 #Part 2
 
+$start = Get-Date
+
 $answer2 = ($map2 | ? {$_ -lt 10000}).Count
 
-Write-Host ("Part 2 = {0} ({1})" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+Write-Host ("Part 2 = {0} ({1:0.0000} seconds)" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan

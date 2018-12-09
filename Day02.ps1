@@ -1,8 +1,10 @@
 ﻿
-$data = cat (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day02.data)
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day02.data)
 
 
 #Part 1
+
+$start = Get-Date
 
 $counts = @(0)*30
 
@@ -16,23 +18,26 @@ foreach ($line in $data) {
     }
 }
 
-$checksum = 1
+$answer1 = 1
 $counts | % {
     if ($_ -gt 0) {
         $checksum *= $_
     }
 }
 
-Write-Host "Part 1 = $checksum" -ForegroundColor Cyan
+Write-Host ("Part 1 = {0} ({1:0.0000} seconds)" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 #Part 2
+
+$start = Get-Date
 
 for ($i = 0; $i -lt $data.Count; $i++) {
     $line = $data[$i]
     for ($n = 0; $n -lt $line.Length; $n++) {
         $line2 = $line.Remove($n,1).Insert($n,".")
         if (($data[$i..$data.Count] -match $line2).Count -gt 1) {
-            Write-Host "Part 2 ="$line2.Replace(".","") -ForegroundColor Cyan
+            $answer2 = $line2.Replace(".","")
+            Write-Host ("Part 2 = {0} ({1:0.0000} seconds)" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
         }
     }
 }

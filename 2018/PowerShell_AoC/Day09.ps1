@@ -3,7 +3,6 @@ $start = Get-Date
 
 $data = Import-Csv (Join-Path (Join-Path ($PSCommandPath | Split-Path -Parent | Split-Path -Parent) Data) Day09.data)
 
-<<<<<<< HEAD
 function padLeft($what, $padding, $length) {
     (($padding*$length)+$what).Substring($what.ToString().Length)
 }
@@ -13,18 +12,6 @@ function showCircle ($player, $circle, $current) {
     $line += ($circle -join " ").Replace((" {0} " -f $current.Value), ("({0})" -f $current.Value))
     #$line.Replace("  "," ") | Out-File -FilePath C:\Users\Techn_000\Desktop\Day09_Test2_output.txt -Append
     $line.Replace("  "," ") | Out-Host
-=======
-function showCircle ($player, $circle, $current) {
-    Write-Host ("[{0:000}] " -f $player) -NoNewline
-    $circle.ForEach({
-        if ($_ -eq $current.Value) {
-            Write-Host (" {0} " -f $_) -ForegroundColor Yellow -NoNewline
-        } else {
-            Write-Host (" {0} " -f $_) -NoNewline
-        }
-    })
-    Write-Host ""
->>>>>>> ea11fe9a8b8666062a5f35d2d6026b40c74bfc77
 }
 
 function getNext($circle, $node, $count = 1) {
@@ -95,13 +82,10 @@ foreach ($row in $data[0..5]) {
     $row.HighestScore = play $row
 }
 
-<<<<<<< HEAD
 
 $data
 return
 
-=======
->>>>>>> ea11fe9a8b8666062a5f35d2d6026b40c74bfc77
 #Part 1
 
 $row = $data[6]

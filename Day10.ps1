@@ -1,64 +1,130 @@
 
 function parse ($line) {
-    $line | % {$d=$_.Replace(" ","").Split("<,>");[PSCustomObject]@{
-        PX=[int]$d[1]
-        PY=[int]$d[2]
-        VX=[int]$d[4]
-        VY=[int]$d[5]
-    }}
+    $line | % {$d=$_.Replace(" ","").Split("<,>"); newStar $d[1] $d[2] $d[4] $d[5]}
 }
 
-function update ([parameter(ValueFromPipeline=$true)]$star) {
-    $star.PX += $star.VX
-    $star.PY += $star.VY
+function newStar ($PX, $PY, $VX, $VY) {
+    [PSCustomObject]@{
+        PX=[int]$PX
+        PY=[int]$PY
+        VX=[int]$VX
+        VY=[int]$VY
+    }
+}
+
+function moveStar ($star, $time) {
+    newStar ($star.PX+($star.VX*$time)) ($star.PY+($star.VY*$time)) $star.VX $star.VY
+}
+
+function moveStars($stars, $time) {
+    $stars | % {moveStar $_ $time}
+}
+
+function sizeOf ($stars) {
+    $minX = ($stars | measure -Minimum PX).Minimum
+    $maxX = ($stars | measure -Maximum PX).Maximum
+    $minY = ($stars | measure -Minimum PY).Minimum
+    $maxY = ($stars | measure -Maximum PY).Maximum
+    $maxX + $maxY - $minX - $minY
 }
 
 function draw ($stars) {
     $sorted = $stars | sort -Property @{Expression = "PY"; Ascending = $true},@{Expression = "PX"; Ascending = $true}
     $minX = ($stars | measure -Minimum PX).Minimum
+    $maxX = ($stars | measure -Maximum PX).Maximum
     $minY = ($stars | measure -Minimum PY).Minimum
     $l=$minY
     $sorted | group PY | % {
         while ($l -lt $_.Group[0].PY) {
             $l++
-            Write-Host ""
         }
-        $line = ""
+        $line = @(" ") * ($maxX - $minX + 1)
         $_.Group | % {
-            $line += (" "*($_.PX-$minX-$line.Length-1))+"*"
+            $line[($_.PX-$minX)] = "*"
         }
-        Write-Host $line
+        Write-Host ($line -join "")
+        $l++
     }
 }
 
-#Examples
 
-$example = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day10test.data) | % {parse $_}
-$example
+
+#Example
+
+cls
+
+$stars = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day10test.data) | % {parse $_}
+$time = 0
+
+$smallest = sizeOf $stars
+$RateOfChange = $smallest - (sizeof ( moveStars $stars 1))
+
+Write-Host "T: 0.  Size: $smallest.  ApproxRateOfChange: $RateOfChange"
 
 do {
+    $dT = [int]($smallest / 2 / $RateOfChange) - 1
+    if ($dT -lt 1) {$dT = 1}
+    $time += $dT
 
-    $star | update
-    draw $example
+    if ($smallest -gt 10000) {
+        $time += 5000
+    } elseif ($smallest -gt 1000) {
+        $time += 500
+    } elseif ($smallest -gt 100) {
+        $time += 50
+    } else {
+        $time += 1
+    }
+    $newStars = moveStars $stars $time
+    $size = sizeOf $newStars
+
+    Write-Host "T: $time.  Size: $size."
+
+    if ($size -lt $smallest) {
+        $smallest = $size
+    } else {
+        $time--
+        break
+    }
 
 } while ($true)
 
+draw (moveStars $stars $time)
+Write-Host "`nTime: $time seconds"
 
-$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day10.data) | % {parse $_}
-$data
+#return
 
-#Part 1
-
-$start = Get-Date
-
-Write-Host ("Part 1 = {0} ({1:0.0000})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
-
-
-
-#Part 2
+#Part 1 & 2
 
 $start = Get-Date
 
-Write-Host ("Part 2 = {0} ({1:0.0000})" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+$stars = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day10.data) | % {parse $_}
+$time = 0
 
+$smallest = sizeOf $stars
+$RateOfChange = $smallest - (sizeof ( moveStars $stars 1))
 
+Write-Host "T: 0.  Size: $smallest.  ApproxRateOfChange: $RateOfChange"
+
+do {
+    $dT = [int]($smallest / 2 / $RateOfChange) - 1
+    if ($dT -lt 1) {$dT = 1}
+    $time += $dT
+
+    $newStars = moveStars $stars $time
+    $size = sizeOf $newStars
+
+    Write-Host "T: $time.  Size: $size."
+
+    if ($size -lt $smallest) {
+        $smallest = $size
+    } else {
+        $time--
+        break
+    }
+
+} while ($true)
+
+draw (moveStars $stars $time)
+Write-Host "`nTime: $time seconds"
+Write-Host ("Parts 1 & 2 {0:0.0000}" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan

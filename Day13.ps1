@@ -103,7 +103,7 @@ function moveRight($cart,$data) {
 
 function tick($carts,$data) {
 
-    #crashes = 0
+    $carts = $carts | sort @{Expression = "Y"; Descending = $false}, @{Expression = "X"; Descending = $False}
 
     foreach ($cart in $carts){
         if (($carts|?{$_ -ne $cart -and $_.X -eq $cart.X -and $_.Y -eq $cart.Y})) {
@@ -116,16 +116,36 @@ function tick($carts,$data) {
                 "<" {moveLeft $cart $data; break}
             }
         }
-#        $collides = $carts|?{$_.X -eq $cart.X -and $_.Y -eq $cart.Y}
-#        if ($collides.Count -gt 1){
-#            $collides|?{$_.Direction -ne "X"} |% {
-#                $_.Direction = "X"
-#                $crashes++
-#            }
-#        }
+    }
+}
+
+function getCollisions($carts) {
+    foreach ($cart in $carts) {
+        $carts | ? {$cart -ne $_ -and $_.X -eq $cart.X -and $_.Y -eq $cart.Y}
+    }
+}
+
+function hasCollisions($carts){
+    ($carts | % {$_.X + $_.Y*1000}|group|select -ExpandProperty Count | sort -Descending | select -First 1) -gt 1
+}
+
+function removeCollisions($carts) {
+
+    $crashes = $false
+
+    foreach ($cart in $carts) {
+        $collisions = $carts | ? {$cart -ne $_ -and $_.X -eq $cart.X -and $_.Y -eq $cart.Y}
+        $collisions | % {
+            $cart.Direction = "X"
+            $crashes = $true
+        }
     }
 
-    #$crashes
+    if ($crashes) {
+        $carts = $carts | ? {$_.Direction -ne "X"}
+    }
+
+    $carts
 }
 
 function logStatus($carts,$data,$moves){
@@ -170,13 +190,13 @@ function logStatus($carts,$data,$moves){
 #$carts | oh
 
 #$cartCount = [int]($carts|?{$_.Direction -ne "X"}).Count
-#$crashes = 0
 #$moves = 0
 
-#while (!$crashes){
-#    $crashes = tick $carts $data
+#while (!(hasCollisions $carts)){
+#    tick $carts $data
+
 #    $moves++
-#    #write-host $moves $carts
+#    write-host $moves $carts
 #}
 
 #Write-Host "Moves: $moves "
@@ -202,42 +222,39 @@ function logStatus($carts,$data,$moves){
 #$moves = 0
 
 #while ($carts.Count -gt 1){
-#    $crashes = tick $carts $data
-#    if ($crashes) {
-#        $carts = $carts | ? {$_.Direction -ne "X"}
-#    }
 #    $moves++
+#    tick $carts $data
+#    $carts = removeCollisions $carts
 #}
 
 #Write-Host "Moves: $moves "
 #$carts | oh
-
 
 #return
 
 
 #Part 1
 
-#$start = Get-Date
+$start = Get-Date
 
-#$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day13.data)
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day13.data)
 
-#$width = $data[0].Length
-#$height = $data.Count
+$width = $data[0].Length
+$height = $data.Count
 
-#$carts = getCarts $data
-#$data = $data | % {$_.Replace("<","-").Replace(">","-").Replace("^","|").Replace("v","|")}
+$carts = getCarts $data
+$data = $data | % {$_.Replace("<","-").Replace(">","-").Replace("^","|").Replace("v","|")}
 
-#$cartCount = [int]($carts|?{$_.Direction -ne "X"}).Count
-#$crashes = 0
+$cartCount = [int]($carts|?{$_.Direction -ne "X"}).Count
+$crashes = 0
 
-#while (!$crashes){
-#    $crashes = tick $carts $data
-#}
+while (!(hasCollisions $carts)){
+    tick $carts $data
+}
 
-#$answer1 = $carts|?{$_.Direction -eq "X"}|select -First 1|%{"{0},{1}" -f $_.X,$_.Y}
+$answer1 = (getCollisions $carts)|select -First 1|%{"{0},{1}" -f $_.X,$_.Y}
 
-#Write-Host ("Part 1 = {0} ({1:0.0000})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+Write-Host ("Part 1 = {0} ({1:0.0000})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 
 
@@ -256,47 +273,12 @@ $data = $data | % {$_.Replace("<","-").Replace(">","-").Replace("^","|").Replace
 $cartCount = [int]($carts|?{$_.Direction -ne "X"}).Count
 $crashes = 0
 $moves = 0
-#logStatus $carts $data $moves
 
 while ($carts.Count -gt 1){
     $moves++
-    $crashes = 0
-    $before = $carts | ConvertTo-Json
     tick $carts $data
-
-#    foreach ($cart in $carts) {
-#        $closeCarts = $carts | ? {$cart -ne $_ -and ([Math]::Abs($_.X-$cart.X) + [Math]::Abs($_.Y-$cart.Y)) -le 1}
-#        if ($closeCarts) {
-#            $carts | sort X | oh
-#            $closeCarts | oh
-#            $null
-#        }
-#    }
-
-    foreach ($cart in $carts) {
-        $collisions = $carts | ? {$cart -ne $_ -and $_.X -eq $cart.X -and $_.Y -eq $cart.Y}
-        $collisions | % {
-            $cart.Direction = "X"
-            $crashes++
-        }
-    }
-    if ($crashes) {
-        $carts = $carts | ? {$_.Direction -ne "X"}
-        Write-Host "$moves moves - cart count "$carts.Count
-        logStatus ($before | ConvertFrom-Json) $data ($moves-1)
-        logStatus $carts $data $moves
-    }
-
-#    if ($crashes) {
-#        Write-Host "$moves moves"
-#        $carts | oh
-#        $carts = $carts | ? {$_.Direction -ne "X"}
-#    }
-#    if ($moves -gt 195) {
-#        logStatus $carts $data $moves
-#    }
+    $carts = removeCollisions $carts
 }
-
 
 Write-Host "$moves moves"
 $answer2 = $carts|select -First 1|%{"{0},{1}" -f $_.X,$_.Y}

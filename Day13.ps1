@@ -103,30 +103,56 @@ function moveRight($cart,$data) {
 
 function tick($carts,$data) {
 
-    $crashes = 0
+    #crashes = 0
 
     foreach ($cart in $carts){
-        switch ($cart.Direction) {
-            "^" {moveUp $cart $data; break}
-            ">" {moveRight $cart $data; break}
-            "v" {moveDown $cart $data; break}
-            "<" {moveLeft $cart $data; break}
-            "X" {$crashes++; break}
-        }
-        $collides = $carts|?{$_.X -eq $cart.X -and $_.Y -eq $cart.Y}
-        if ($collides.Count -gt 1){
-            $collides|?{$_.Direction -ne "X"} |% {
-                $_.Direction = "X"
-                $crashes++
+        if (($carts|?{$_ -ne $cart -and $_.X -eq $cart.X -and $_.Y -eq $cart.Y})) {
+            "collision!" | Out-Null
+        } else {
+            switch ($cart.Direction) {
+                "^" {moveUp $cart $data; break}
+                ">" {moveRight $cart $data; break}
+                "v" {moveDown $cart $data; break}
+                "<" {moveLeft $cart $data; break}
             }
         }
+#        $collides = $carts|?{$_.X -eq $cart.X -and $_.Y -eq $cart.Y}
+#        if ($collides.Count -gt 1){
+#            $collides|?{$_.Direction -ne "X"} |% {
+#                $_.Direction = "X"
+#                $crashes++
+#            }
+#        }
     }
 
-    $crashes
+    #$crashes
 }
 
-function showMe($carts,$data){
-    
+function logStatus($carts,$data,$moves){
+    $filename = ("output_{0:000000}.txt" -f $moves)
+
+    $width = $data[0].Length-1
+    $height = $data.Count-1
+
+    $lines = @()
+
+    @(0..$height)|%{
+        $y=$_
+        $line = ""
+        @(0..$width)|%{
+            $x=$_
+            $c = ($data[$y][$x])
+            $cart=$carts|?{$_.X -eq $x -and $_.Y -eq $y}
+            if ($cart) {
+                $line += $cart.Direction
+            } else {
+                $line += $c
+            }
+        }
+        $lines = $lines + $line
+    }
+
+    Set-Content -Value $lines -Path $filename
 }
 
 #Examples
@@ -230,15 +256,47 @@ $data = $data | % {$_.Replace("<","-").Replace(">","-").Replace("^","|").Replace
 $cartCount = [int]($carts|?{$_.Direction -ne "X"}).Count
 $crashes = 0
 $moves = 0
+#logStatus $carts $data $moves
 
 while ($carts.Count -gt 1){
-    $crashes = tick $carts $data
+    $moves++
+    $crashes = 0
+    $before = $carts | ConvertTo-Json
+    tick $carts $data
+
+#    foreach ($cart in $carts) {
+#        $closeCarts = $carts | ? {$cart -ne $_ -and ([Math]::Abs($_.X-$cart.X) + [Math]::Abs($_.Y-$cart.Y)) -le 1}
+#        if ($closeCarts) {
+#            $carts | sort X | oh
+#            $closeCarts | oh
+#            $null
+#        }
+#    }
+
+    foreach ($cart in $carts) {
+        $collisions = $carts | ? {$cart -ne $_ -and $_.X -eq $cart.X -and $_.Y -eq $cart.Y}
+        $collisions | % {
+            $cart.Direction = "X"
+            $crashes++
+        }
+    }
     if ($crashes) {
         $carts = $carts | ? {$_.Direction -ne "X"}
+        Write-Host "$moves moves - cart count "$carts.Count
+        logStatus ($before | ConvertFrom-Json) $data ($moves-1)
+        logStatus $carts $data $moves
     }
-    $moves++
-    #showMe $carts $data
+
+#    if ($crashes) {
+#        Write-Host "$moves moves"
+#        $carts | oh
+#        $carts = $carts | ? {$_.Direction -ne "X"}
+#    }
+#    if ($moves -gt 195) {
+#        logStatus $carts $data $moves
+#    }
 }
+
 
 Write-Host "$moves moves"
 $answer2 = $carts|select -First 1|%{"{0},{1}" -f $_.X,$_.Y}

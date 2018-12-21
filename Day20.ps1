@@ -3,6 +3,7 @@ function loadData ($data) {
     $result = [PSCustomObject]@{
         sourceData = $data
         state = "X"
+        rooms = [System.Collections.ArrayList]::new()
         minX = 0
         maxX = 0
         minY = 0
@@ -12,18 +13,41 @@ function loadData ($data) {
     } | Add-Member -PassThru -MemberType ScriptProperty -Name Height -Value {
         $this.maxY - $this.minY + 1
     } | Add-Member -PassThru -MemberType ScriptMethod -Name Show -Value {
-        $state = $this.state
-        while($state.Length -ge $this.Width){
-            Write-Host $state.SubString(0,$this.Width)
-            $state = $state.SubString($this.Width)
-        }
-    } | Add-Member -PassThru -MemberType ScriptMethod -Name XXX -Value {
-        
+        $data.rooms | ft X,Y,N,E,S,W | oh
+
+    } | Add-Member -PassThru -MemberType ScriptMethod -Name RoomAt -Value {
+        param ([System.Drawing.Point]$location)
+        $r = $this.rooms | ?{$_.X -eq $location.X -and $_.Y -eq $location.Y}
+        if (!$r) { $r = $this.NewRoom($location) }
+        $r
+    } | Add-Member -PassThru -MemberType ScriptMethod -Name NewRoom -Value {
+        param ([System.Drawing.Point]$location)
+        $r = newRoom -Location $location
+        $this.rooms.Add($r) | out-null
+        $r
+    #} | Add-Member -PassThru -MemberType ScriptMethod -Name XXX -Value {        
     } 
     
     $dests = generate $result $data.TrimStart("^").TrimEnd("$")
+    Write-Host "Final Destinations:" -ForegroundColor Green
+    $dests | ft X,Y | oh
 
     $result
+}
+
+function newRoom([int]$X,[int]$Y,[System.Drawing.Point]$Location) {
+    if ($Location) {
+        $X = $location.X
+        $Y = $location.Y
+    }
+    [PSCustomObject]@{
+        X = $X
+        Y = $Y
+        N = $null
+        E = $null
+        S = $null
+        W = $null
+    }
 }
 
 function deDup ($positions) {
@@ -33,57 +57,82 @@ function deDup ($positions) {
 function generate ($data,$instructions,$position=[System.Drawing.Point]::new(0,0)) {
     Write-Host $instructions -ForegroundColor Magenta
 
-    while ($instructions) {
-        if ($instructions.StartsWith("(")) {
-            $start = 1
-            $end = $instructions.LastIndexOf(")")-1
-            $section = $instructions.Substring($start,$end)
-            deDup (generate $data $section $position)
-            $instructions = $instructions.Substring($end+2)
-        } else {
-            $end = ($instructions+"(").IndexOfAny("()")
-            $section = $instructions.Substring(0,$end)
-            if ($section.Contains("|")) {
+    if ($instructions.StartsWith("(")) {
+        $start = 1
+        $end = $instructions.LastIndexOf(")")-1
+        $section = $instructions.Substring($start,$end)
+        $positions = generate $data $section $position
+        $instructions = $instructions.Substring($end+2)
+    } else {
+        $end = ($instructions+"(").IndexOfAny("()")
+        $section = $instructions.Substring(0,$end)
+        if ($section.Contains("|")) {
+            $positions = deDup (
                 $section.Split("|") | % {
-                    deDup (generate $data $_ $position)
-                }
-            } else {
-                walk $data $section $position
-            }
-            $instructions = $instructions.Substring($end)
+                    $section = $_
+                    $positions | % { generate $data $section $_ }
+                })
+        } else {
+            $positions = walk $data $section $position
         }
+        $instructions = $instructions.Substring($end)
+    }
+    if ($instructions) {
+        $positions | % { generate $data $instructions $_ }
+    } else {
+        $positions
     }
 }
 
 function walk ($data,$instructions,$position) {
-    $x = $position.X
-    $y = $position.Y
+    Write-Host $instructions -ForegroundColor Yellow
+    $currentRoom = $data.RoomAt($position)
     switch ($instructions.ToCharArray()) {
         "N" {
-            $y--
-            if ($data.minY -eq $y) {
-                #add to top of map
-            } else {
-                
+                $position.Y--
+                $newRoom = $data.RoomAt($position)
+                $currentRoom.N = $newRoom
+                $newRoom.S = $currentRoom
+                $currentRoom = $newRoom
             }
-        }
         "E" {
-        }
+                $position.X++
+                $newRoom = $data.RoomAt($position)
+                $currentRoom.E = $newRoom
+                $newRoom.W = $currentRoom
+                $currentRoom = $newRoom
+            }
         "S" {
-        }
+                $position.Y++
+                $newRoom = $data.RoomAt($position)
+                $currentRoom.S = $newRoom
+                $newRoom.N = $currentRoom
+                $currentRoom = $newRoom
+            }
         "W" {
-        }
+                $position.X--
+                $newRoom = $data.RoomAt($position)
+                $currentRoom.W = $newRoom
+                $newRoom.E = $currentRoom
+                $currentRoom = $newRoom
+            }
         default {
-        }
+                Write-Host "Oh Frell!" -ForegroundColor Yellow -BackgroundColor Red
+            }
     }
+    return $position
 }
 
 #Examples
 
+cls
 $start = Get-Date
 $data = loadData "^ENWWW(NEEE|SSE(EE|N))$"
 
 $data.Show()
+
+
+Write-Host ("Part 0 = {0} ({1:0.0000})" -f $answer0,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 return
 

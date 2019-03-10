@@ -1,5 +1,15 @@
 
-function nObj($t,$x,$y) {[pscustomobject]@{t=$t;x=$x;y=$y;h=200}}
+function nObj($t,$x,$y) {
+    [PSCustomObject]@{t=$t;x=$x;y=$y;h=200
+    } | Add-Member -PassThru -MemberType ScriptMethod -Name "GetLocation" -Value {
+        nLoc $this.x $this.y
+    }
+}
+
+function nLoc($x,$y){
+    [PSCustomObject]@{x=$x;y=$y}
+}
+
 
 function abs ([int16] $i) {[Math]::Abs($i)}
 
@@ -9,6 +19,10 @@ function parseData ($data) {
     $width = $map[0].Length
     $height = $map.Count
     $objects = New-Object System.Collections.ArrayList
+    
+    $map | Add-Member -MemberType ScriptMethod -Name "Update" -Value {
+        param ($x,$y,$t)
+    }
 
     for ($y=0; $y -lt $height; $y++) {
         for ($x=0; $x -lt $width; $x++) {
@@ -39,7 +53,7 @@ function parseData ($data) {
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "GetEnemies" -Value {
         param ($entity)
         $this.Entities() | ? {$_.t -ne $entity.t -and $_.h -gt 0}
-    } | Add-Member -PassThru -MemberType ScriptMethod -Name "GetEnemy" -Value {
+    } | Add-Member -PassThru -MemberType ScriptMethod -Name "GetEnemyNeighbour" -Value {
         param ($entity)
         $enemies = $this.GetEnemies($entity)
         foreach ($enemy in $enemies) {
@@ -50,12 +64,40 @@ function parseData ($data) {
         }
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "HasEnemyNeighbour" -Value {
         param ($entity)
-        [bool]($this.GetEnemy($entity))
+        [bool]($this.GetEnemyNeighbour($entity))
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "BringOutYourDead" -Value {
         $this.Objects = $this.Objects | ? {$_.h -gt 0}
-    } | Add-Member -PassThru -MemberType ScriptMethod -Name "ClosestCellAdjacentToEnemy" -Value {
+    } | Add-Member -PassThru -MemberType ScriptMethod -Name "ShortestPathToEnemy" -Value {
         param ($entity)
-        
+        $t = $entity.t.ToString().ToLower()
+        $map = $this.Map.Clone()
+        $stack = New-Object System.Collections.Stack
+        $stack.Push(@($entity.GetLocation()))
+        while ($stack.Count) {
+            $path = $stack.Pop()
+            $x = $path[-1].x
+            $y = $path[-1].y
+            if ($this.HasEnemyNeighbour((nObj $t $x $y))) {
+                return $path
+            } else {
+                if ($map[$y-1][$x] -eq ".") {
+                    $map[$y-1] = $map[$y-1].Remove($x,1).Insert($x,$t)
+                    $stack.Push($path+(nLoc $x ($y-1)))
+                }
+                if ($map[$y][$x-1] -eq ".") {
+                    $map[$y] = $map[$y].Remove($x-1,1).Insert($x-1,$t)
+                    $stack.Push($path+(nLoc ($x-1) $y))
+                }
+                if ($map[$y][$x+1] -eq ".") {
+                    $map[$y] = $map[$y].Remove($x+1,1).Insert($x+1,$t)
+                    $stack.Push($path+(nLoc ($x+1) $y))
+                }
+                if ($map[$y+1][$x] -eq ".") {
+                    $map[$y+1] = $map[$y+1].Remove($x,1).Insert($x,$t)
+                    $stack.Push($path+(nLoc $x ($y+1)))
+                }
+            }
+        }
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "Run" -Value {
         $round = 0
         while (!$this.GameOver) {
@@ -65,11 +107,11 @@ function parseData ($data) {
             foreach ($entity in $entities) {
                 if ($entity.h) {
                     if (!($this.HasEnemyNeighbour($entity))) {
-                        $target = $this.ClosestCellAdjacentToEnemy($entity)
-                        Write-Host $entity,"Move",$target
+                        $path = $this.ShortestPathToEnemy($entity)
+                        Write-Host $entity,"Move",$path.Count
                     }
                     if ($this.HasEnemyNeighbour($entity)) {
-                        $target = $this.GetEnemy($entity)
+                        $target = $this.GetEnemyNeighbour($entity)
                         Write-Host $entity,"Fight",$target
                     }
                 }

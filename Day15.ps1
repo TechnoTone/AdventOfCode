@@ -3,6 +3,10 @@ function nObj($t,$x,$y) {
     [PSCustomObject]@{t=$t;x=$x;y=$y;h=200
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "GetLocation" -Value {
         nLoc $this.x $this.y
+    } | Add-Member -PassThru -MemberType ScriptMethod -Name "SetLocation" -Value {
+        param ($x,$y)
+        $this.x = $x
+        $this.y = $y
     }
 }
 
@@ -10,8 +14,11 @@ function nLoc($x,$y){
     [PSCustomObject]@{x=$x;y=$y}
 }
 
-
 function abs ([int16] $i) {[Math]::Abs($i)}
+
+function updateMap ($map,$x,$y,$value) {
+    $map[$y] = $map[$y].Remove($x,1).Insert($x,$value)
+}
 
 function parseData ($data) {
     $target = [int]$data[-1]
@@ -42,6 +49,11 @@ function parseData ($data) {
         Width = $width
         Height = $height
         Objects = $objects
+    } | Add-Member -PassThru -MemberType ScriptMethod -Name "MoveEntity" -Value {
+        param ($entity,$x,$y)
+        updateMap $this.Map ($entity.x) ($entity.y) "."
+        $entity.setLocation($x,$y)
+        updateMap $this.Map ($entity.x) ($entity.y) ($entity.t)
     } | Add-Member -PassThru -MemberType ScriptProperty -Name "ObjectTypes" -Value {
         $this.Objects | select -Unique t
     } | Add-Member -PassThru -MemberType ScriptProperty -Name "GameOver" -Value {
@@ -81,19 +93,23 @@ function parseData ($data) {
                 return $path
             } else {
                 if ($map[$y-1][$x] -eq ".") {
-                    $map[$y-1] = $map[$y-1].Remove($x,1).Insert($x,$t)
+                    updateMap $map ($y-1) $x $t
+                    #$map[$y-1] = $map[$y-1].Remove($x,1).Insert($x,$t)
                     $stack.Push($path+(nLoc $x ($y-1)))
                 }
                 if ($map[$y][$x-1] -eq ".") {
-                    $map[$y] = $map[$y].Remove($x-1,1).Insert($x-1,$t)
+                    updateMap $map $y ($x-1) $t
+                    #$map[$y] = $map[$y].Remove($x-1,1).Insert($x-1,$t)
                     $stack.Push($path+(nLoc ($x-1) $y))
                 }
                 if ($map[$y][$x+1] -eq ".") {
-                    $map[$y] = $map[$y].Remove($x+1,1).Insert($x+1,$t)
+                    updateMap $map $y ($x+1) $t
+                    #$map[$y] = $map[$y].Remove($x+1,1).Insert($x+1,$t)
                     $stack.Push($path+(nLoc ($x+1) $y))
                 }
                 if ($map[$y+1][$x] -eq ".") {
-                    $map[$y+1] = $map[$y+1].Remove($x,1).Insert($x,$t)
+                    updateMap $map ($y+1) $x $t
+                    #$map[$y+1] = $map[$y+1].Remove($x,1).Insert($x,$t)
                     $stack.Push($path+(nLoc $x ($y+1)))
                 }
             }
@@ -102,6 +118,7 @@ function parseData ($data) {
         $round = 0
         while (!$this.GameOver) {
             Write-Host "Round $round"
+            $this.Map | oh
 
             $entities = $this.Entities()
             foreach ($entity in $entities) {
@@ -109,6 +126,7 @@ function parseData ($data) {
                     if (!($this.HasEnemyNeighbour($entity))) {
                         $path = $this.ShortestPathToEnemy($entity)
                         Write-Host $entity,"Move",$path.Count
+                        $this.MoveEntity($entity,$path[1].x,$path[1].y)
                     }
                     if ($this.HasEnemyNeighbour($entity)) {
                         $target = $this.GetEnemyNeighbour($entity)
@@ -116,7 +134,7 @@ function parseData ($data) {
                     }
                 }
             }
-            return
+            #return
             $this.BringOutYourDead()
             $round++
         }
@@ -130,7 +148,6 @@ cls
 
 
 $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test1) )
-$data.Map
 $data.Run()
 
 return

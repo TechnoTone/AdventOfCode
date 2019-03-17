@@ -67,17 +67,17 @@ function parseData ($data) {
         $this.Entities() | ? {$_.t -ne $entity.t -and $_.h -gt 0}
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "GetEnemyNeighbour" -Value {
         param ($entity)
-        $enemies = $this.GetEnemies($entity)
-        foreach ($enemy in $enemies) {
-            if ($enemy.x -eq $entity.x -and ((abs ($enemy.y-$entity.y)) -le 1) -or
-                ($enemy.y -eq $entity.y -and ((abs ($enemy.x-$entity.x)) -le 1))) {
-                return $enemy
-            }
-        }
+        $this.GetEnemies($entity) | ? {
+            ($_.x -eq $entity.x -and ((abs ($_.y-$entity.y)) -le 1)) -or
+            ($_.y -eq $entity.y -and ((abs ($_.x-$entity.x)) -le 1))
+        } | sort h,y,x | select -First 1
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "HasEnemyNeighbour" -Value {
         param ($entity)
         [bool]($this.GetEnemyNeighbour($entity))
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "BringOutYourDead" -Value {
+        $this.Objects | ? {$_.h -le 0} | % {
+            updateMap $this.Map $_.x $_.y "."
+        }
         $this.Objects = $this.Objects | ? {$_.h -gt 0}
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "ShortestPathToEnemy" -Value {
         param ($entity)
@@ -85,58 +85,69 @@ function parseData ($data) {
         $map = $this.Map.Clone()
         $stack = New-Object System.Collections.Stack
         $stack.Push(@($entity.GetLocation()))
+        $results = New-Object System.Collections.ArrayList
         while ($stack.Count) {
             $path = $stack.Pop()
-            $x = $path[-1].x
-            $y = $path[-1].y
-            if ($this.HasEnemyNeighbour((nObj $t $x $y))) {
-                return $path
-            } else {
-                if ($map[$y-1][$x] -eq ".") {
-                    updateMap $map ($y-1) $x $t
-                    #$map[$y-1] = $map[$y-1].Remove($x,1).Insert($x,$t)
-                    $stack.Push($path+(nLoc $x ($y-1)))
-                }
-                if ($map[$y][$x-1] -eq ".") {
-                    updateMap $map $y ($x-1) $t
-                    #$map[$y] = $map[$y].Remove($x-1,1).Insert($x-1,$t)
-                    $stack.Push($path+(nLoc ($x-1) $y))
-                }
-                if ($map[$y][$x+1] -eq ".") {
-                    updateMap $map $y ($x+1) $t
-                    #$map[$y] = $map[$y].Remove($x+1,1).Insert($x+1,$t)
-                    $stack.Push($path+(nLoc ($x+1) $y))
-                }
-                if ($map[$y+1][$x] -eq ".") {
-                    updateMap $map ($y+1) $x $t
-                    #$map[$y+1] = $map[$y+1].Remove($x,1).Insert($x,$t)
-                    $stack.Push($path+(nLoc $x ($y+1)))
+            if ($results.Count -eq 0 -or $path.Length -le $results[0].Length ) {
+                $x = $path[-1].x
+                $y = $path[-1].y
+                if ($this.HasEnemyNeighbour((nObj $t $x $y))) {
+                    if ($results[0].Length -gt $path.Length) {
+                        $results.Clear()
+                    }
+                    $results.Add($path) | Out-Null
+                } else {
+                    if ($map[$y-1][$x] -eq ".") {
+                        updateMap $map $x ($y-1) $t
+                        $stack.Push($path+(nLoc $x ($y-1)))
+                    }
+                    if ($map[$y][$x-1] -eq ".") {
+                        updateMap $map ($x-1) $y $t
+                        $stack.Push($path+(nLoc ($x-1) $y))
+                    }
+                    if ($map[$y][$x+1] -eq ".") {
+                        updateMap $map ($x+1) $y $t
+                        $stack.Push($path+(nLoc ($x+1) $y))
+                    }
+                    if ($map[$y+1][$x] -eq ".") {
+                        updateMap $map $x ($y+1) $t
+                        $stack.Push($path+(nLoc $x ($y+1)))
+                    }
                 }
             }
+        }
+        if ($results.Count) {
+            $results | ? {$_[-1] -eq ($results | % {$_ | select -Last 1} | sort y,x | select -First 1)}
+        }
+    } | Add-Member -PassThru -MemberType ScriptMethod -Name "DrawState" -Value {
+        foreach ($y in @(0..($this.Map.Count-1))) {
+            Write-Host $this.Map[$y] "  " -NoNewline
+            write-host (($this.Entities() | ? {$_.y -eq $y} | % {"{0}({1})" -f $_.t,$_.h}) -join ", ")
         }
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "Run" -Value {
         $round = 0
         while (!$this.GameOver) {
-            Write-Host "Round $round"
-            $this.Map | oh
-
             $entities = $this.Entities()
             foreach ($entity in $entities) {
                 if ($entity.h) {
                     if (!($this.HasEnemyNeighbour($entity))) {
                         $path = $this.ShortestPathToEnemy($entity)
-                        Write-Host $entity,"Move",$path.Count
+                        #Write-Host $entity,"Move",$path.Count
                         $this.MoveEntity($entity,$path[1].x,$path[1].y)
                     }
                     if ($this.HasEnemyNeighbour($entity)) {
                         $target = $this.GetEnemyNeighbour($entity)
-                        Write-Host $entity,"Fight",$target
+                        #Write-Host $entity,"Fight",$target
+                        $target.h = $target.h -3
                     }
                 }
             }
             #return
             $this.BringOutYourDead()
             $round++
+            Write-Host "After round $round" -ForegroundColor Magenta
+            $this.DrawState()
+            if ($round -ge 25) {pause}
         }
         Write-Host "Game Over after $round rounds"
     } 
@@ -148,6 +159,9 @@ cls
 
 
 $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test1) )
+
+Write-Host "Initially:" -ForegroundColor Magenta
+$data.DrawState()
 $data.Run()
 
 return

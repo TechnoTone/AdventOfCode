@@ -83,11 +83,11 @@ function parseData ($data) {
         param ($entity)
         $t = $entity.t.ToString().ToLower()
         $map = $this.Map.Clone()
-        $stack = New-Object System.Collections.Stack
-        $stack.Push(@($entity.GetLocation()))
+        $queue = New-Object System.Collections.Queue
+        $queue.Enqueue(@($entity.GetLocation()))
         $results = New-Object System.Collections.ArrayList
-        while ($stack.Count) {
-            $path = $stack.Pop()
+        while ($queue.Count) {
+            $path = $queue.Dequeue()
             if ($results.Count -eq 0 -or $path.Length -le $results[0].Length ) {
                 $x = $path[-1].x
                 $y = $path[-1].y
@@ -99,19 +99,19 @@ function parseData ($data) {
                 } else {
                     if ($map[$y-1][$x] -eq ".") {
                         updateMap $map $x ($y-1) $t
-                        $stack.Push($path+(nLoc $x ($y-1)))
+                        $queue.Enqueue($path+(nLoc $x ($y-1)))
                     }
                     if ($map[$y][$x-1] -eq ".") {
                         updateMap $map ($x-1) $y $t
-                        $stack.Push($path+(nLoc ($x-1) $y))
+                        $queue.Enqueue($path+(nLoc ($x-1) $y))
                     }
                     if ($map[$y][$x+1] -eq ".") {
                         updateMap $map ($x+1) $y $t
-                        $stack.Push($path+(nLoc ($x+1) $y))
+                        $queue.Enqueue($path+(nLoc ($x+1) $y))
                     }
                     if ($map[$y+1][$x] -eq ".") {
                         updateMap $map $x ($y+1) $t
-                        $stack.Push($path+(nLoc $x ($y+1)))
+                        $queue.Enqueue($path+(nLoc $x ($y+1)))
                     }
                 }
             }
@@ -132,8 +132,12 @@ function parseData ($data) {
                 if ($entity.h) {
                     if (!($this.HasEnemyNeighbour($entity))) {
                         $path = $this.ShortestPathToEnemy($entity)
-                        #Write-Host $entity,"Move",$path.Count
-                        $this.MoveEntity($entity,$path[1].x,$path[1].y)
+                        if ($path) {
+                            #Write-Host $entity,"Move",$path.Count
+                            $this.MoveEntity($entity,$path[1].x,$path[1].y)
+                        } else {
+                            #Write-Host $entity,"Wait"
+                        }
                     }
                     if ($this.HasEnemyNeighbour($entity)) {
                         $target = $this.GetEnemyNeighbour($entity)
@@ -145,11 +149,16 @@ function parseData ($data) {
             #return
             $this.BringOutYourDead()
             $round++
-            Write-Host "After round $round" -ForegroundColor Magenta
-            $this.DrawState()
-            if ($round -ge 25) {pause}
+            #Write-Host "After round $round" -ForegroundColor Magenta
+            #$this.DrawState()
+            if ($round -ge 26) { 
+                #pause
+            }
         }
         Write-Host "Game Over after $round rounds"
+        $totalHP = ($this.Entities().h | measure -Sum).Sum
+        Write-Host "Hitpoints remaining: $totalHP"
+        Write-Host "Outcome:" ($totalHP*$round)
     } 
 }
 
@@ -159,10 +168,46 @@ cls
 
 
 $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test1) )
-
 Write-Host "Initially:" -ForegroundColor Magenta
 $data.DrawState()
 $data.Run()
+$data.DrawState()
+
+
+$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test2) )
+Write-Host "Initially:" -ForegroundColor Magenta
+$data.DrawState()
+$data.Run()
+$data.DrawState()
+
+
+$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test3) )
+Write-Host "Initially:" -ForegroundColor Magenta
+$data.DrawState()
+$data.Run()
+$data.DrawState()
+
+
+$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test4) )
+Write-Host "Initially:" -ForegroundColor Magenta
+$data.DrawState()
+$data.Run()
+$data.DrawState()
+
+
+$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test5) )
+Write-Host "Initially:" -ForegroundColor Magenta
+$data.DrawState()
+$data.Run()
+$data.DrawState()
+
+
+$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test6) )
+Write-Host "Initially:" -ForegroundColor Magenta
+$data.DrawState()
+$data.Run()
+$data.DrawState()
+
 
 return
 

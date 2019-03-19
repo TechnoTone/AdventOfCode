@@ -21,8 +21,13 @@ function updateMap ($map,$x,$y,$value) {
 }
 
 function parseData ($data) {
-    $target = [int]$data[-1]
-    $map = $data[0..($data.Count-2)]
+    if (!$data[-1].StartsWith("#")){
+        $target = [int]$data[-1]
+        $data = $data[0..($data.Count-2)]
+    } else {
+        $target = -1
+    }
+    $map = $data
     $width = $map[0].Length
     $height = $map.Count
     $objects = New-Object System.Collections.ArrayList
@@ -57,7 +62,7 @@ function parseData ($data) {
     } | Add-Member -PassThru -MemberType ScriptProperty -Name "ObjectTypes" -Value {
         $this.Objects | select -Unique t
     } | Add-Member -PassThru -MemberType ScriptProperty -Name "GameOver" -Value {
-        $this.ObjectTypes.Count -le 2
+        ($this.Objects | ? {$_.h} | select -Unique t).Count -le 2
     } | Add-Member -PassThru -MemberType ScriptProperty -Name "ObjectCounts" -Value {
         $this.Objects | group t -NoElement
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "Entities" -Value {
@@ -75,9 +80,9 @@ function parseData ($data) {
         param ($entity)
         [bool]($this.GetEnemyNeighbour($entity))
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "BringOutYourDead" -Value {
-        $this.Objects | ? {$_.h -le 0} | % {
-            updateMap $this.Map $_.x $_.y "."
-        }
+#        $this.Objects | ? {$_.h -le 0} | % {
+#            updateMap $this.Map $_.x $_.y "."
+#        }
         $this.Objects = $this.Objects | ? {$_.h -gt 0}
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "ShortestPathToEnemy" -Value {
         param ($entity)
@@ -130,6 +135,10 @@ function parseData ($data) {
             $entities = $this.Entities()
             foreach ($entity in $entities) {
                 if ($entity.h) {
+                    if ($this.GameOver) {
+                        $this.BringOutYourDead()
+                        return $round
+                    }
                     if (!($this.HasEnemyNeighbour($entity))) {
                         $path = $this.ShortestPathToEnemy($entity)
                         if ($path) {
@@ -142,24 +151,26 @@ function parseData ($data) {
                     if ($this.HasEnemyNeighbour($entity)) {
                         $target = $this.GetEnemyNeighbour($entity)
                         #Write-Host $entity,"Fight",$target
-                        $target.h = $target.h -3
+                        if ($target.h -le 3) {
+                            $target.h=0
+                            updateMap $this.Map $target.x $target.y "."
+                            $this.BringOutYourDead()
+                        } else {
+                            $target.h = $target.h -3
+                        }
                     }
                 }
             }
             #return
-            $this.BringOutYourDead()
             $round++
             #Write-Host "After round $round" -ForegroundColor Magenta
             #$this.DrawState()
-            if ($round -ge 26) { 
-                #pause
-            }
+            #if ($round -ge 37) { 
+            #    pause
+            #}
         }
-        Write-Host "Game Over after $round rounds"
-        $totalHP = ($this.Entities().h | measure -Sum).Sum
-        Write-Host "Hitpoints remaining: $totalHP"
-        Write-Host "Outcome:" ($totalHP*$round)
-    } 
+        return $round
+    }
 }
 
 
@@ -167,57 +178,147 @@ function parseData ($data) {
 cls
 
 
-$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test1) )
-Write-Host "Initially:" -ForegroundColor Magenta
-$data.DrawState()
-$data.Run()
-$data.DrawState()
+#$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test1) )
+#Write-Host "Initially:" -ForegroundColor Magenta
+#$data.DrawState()
+#$rounds = $data.Run()
+#$data.DrawState()
+#$totalHP = ($data.Entities().h | measure -Sum).Sum
+#if ($data.Entities()[0].t -eq "E") {
+#    $t = "Elves"
+#} else {
+#    $t = "Goblins"
+#}
+#Write-Host "Combat ends after $rounds full rounds"
+#Write-Host "$t win with $totalHP total hitpoints left"
+#if ($data.Target -eq $rounds*$totalHP) {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Green
+#} else {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Red
+#}
 
 
-$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test2) )
-Write-Host "Initially:" -ForegroundColor Magenta
-$data.DrawState()
-$data.Run()
-$data.DrawState()
+#$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test2) )
+#Write-Host "Initially:" -ForegroundColor Magenta
+#$data.DrawState()
+#$rounds = $data.Run()
+#$data.DrawState()
+#$totalHP = ($data.Entities().h | measure -Sum).Sum
+#if ($data.Entities()[0].t -eq "E") {
+#    $t = "Elves"
+#} else {
+#    $t = "Goblins"
+#}
+#Write-Host "Combat ends after $rounds full rounds"
+#Write-Host "$t win with $totalHP total hitpoints left"
+#if ($data.Target -eq $rounds*$totalHP) {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Green
+#} else {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Red
+#}
 
 
-$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test3) )
-Write-Host "Initially:" -ForegroundColor Magenta
-$data.DrawState()
-$data.Run()
-$data.DrawState()
+#$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test3) )
+#Write-Host "Initially:" -ForegroundColor Magenta
+#$data.DrawState()
+#$rounds = $data.Run()
+#$data.DrawState()
+#$totalHP = ($data.Entities().h | measure -Sum).Sum
+#if ($data.Entities()[0].t -eq "E") {
+#    $t = "Elves"
+#} else {
+#    $t = "Goblins"
+#}
+#Write-Host "Combat ends after $rounds full rounds"
+#Write-Host "$t win with $totalHP total hitpoints left"
+#if ($data.Target -eq $rounds*$totalHP) {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Green
+#} else {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Red
+#}
 
 
-$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test4) )
-Write-Host "Initially:" -ForegroundColor Magenta
-$data.DrawState()
-$data.Run()
-$data.DrawState()
+#$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test4) )
+#Write-Host "Initially:" -ForegroundColor Magenta
+#$data.DrawState()
+#$rounds = $data.Run()
+#$data.DrawState()
+#$totalHP = ($data.Entities().h | measure -Sum).Sum
+#if ($data.Entities()[0].t -eq "E") {
+#    $t = "Elves"
+#} else {
+#    $t = "Goblins"
+#}
+#Write-Host "Combat ends after $rounds full rounds"
+#Write-Host "$t win with $totalHP total hitpoints left"
+#if ($data.Target -eq $rounds*$totalHP) {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Green
+#} else {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Red
+#}
 
 
-$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test5) )
-Write-Host "Initially:" -ForegroundColor Magenta
-$data.DrawState()
-$data.Run()
-$data.DrawState()
+#$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test5) )
+#Write-Host "Initially:" -ForegroundColor Magenta
+#$data.DrawState()
+#$rounds = $data.Run()
+#$data.DrawState()
+#$totalHP = ($data.Entities().h | measure -Sum).Sum
+#if ($data.Entities()[0].t -eq "E") {
+#    $t = "Elves"
+#} else {
+#    $t = "Goblins"
+#}
+#Write-Host "Combat ends after $rounds full rounds"
+#Write-Host "$t win with $totalHP total hitpoints left"
+#if ($data.Target -eq $rounds*$totalHP) {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Green
+#} else {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Red
+#}
 
 
-$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test6) )
-Write-Host "Initially:" -ForegroundColor Magenta
-$data.DrawState()
-$data.Run()
-$data.DrawState()
+#$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.test6) )
+#Write-Host "Initially:" -ForegroundColor Magenta
+#$data.DrawState()
+#$rounds = $data.Run()
+#$data.DrawState()
+#$totalHP = ($data.Entities().h | measure -Sum).Sum
+#if ($data.Entities()[0].t -eq "E") {
+#    $t = "Elves"
+#} else {
+#    $t = "Goblins"
+#}
+#Write-Host "Combat ends after $rounds full rounds"
+#Write-Host "$t win with $totalHP total hitpoints left"
+#if ($data.Target -eq $rounds*$totalHP) {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Green
+#} else {
+#    Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP)) -ForegroundColor Red
+#}
 
-
-return
+#return
 
 #Part 1
 
-$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day15.data)
-
 $start = Get-Date
 
-Write-Host ("Part 1 = {0} ({1:0.0000})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.data) )
+Write-Host "Initially:" -ForegroundColor Magenta
+$data.DrawState()
+$rounds = $data.Run()
+$data.DrawState()
+$totalHP = ($data.Entities().h | measure -Sum).Sum
+if ($data.Entities()[0].t -eq "E") {
+    $t = "Elves"
+} else {
+    $t = "Goblins"
+}
+Write-Host "Combat ends after $rounds full rounds"
+Write-Host "$t win with $totalHP total hitpoints left"
+Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP))
+
+Write-Host ("Part 1 took {1:0.0000} seconds" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 
 

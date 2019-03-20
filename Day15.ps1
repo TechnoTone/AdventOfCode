@@ -1,6 +1,6 @@
 
 function nObj($t,$x,$y) {
-    [PSCustomObject]@{t=$t;x=$x;y=$y;h=200
+    [PSCustomObject]@{t=$t;x=$x;y=$y;h=200;LastPath=$null;LastMapState=$null
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "GetLocation" -Value {
         nLoc $this.x $this.y
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "SetLocation" -Value {
@@ -130,17 +130,29 @@ function parseData ($data) {
             write-host (($this.Entities() | ? {$_.y -eq $y} | % {"{0}({1})" -f $_.t,$_.h}) -join ", ")
         }
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "Run" -Value {
+        param ($attack = 3)
         $round = 0
         while (!$this.GameOver) {
             $entities = $this.Entities()
+            cls
+            #$entities | sort t,h,y,x | oh
+            $this.Map | oh
+            Write-Host "$attack/$round"
             foreach ($entity in $entities) {
                 if ($entity.h) {
+                    Write-Host $entity.t -NoNewline
                     if ($this.GameOver) {
                         $this.BringOutYourDead()
                         return $round
                     }
                     if (!($this.HasEnemyNeighbour($entity))) {
-                        $path = $this.ShortestPathToEnemy($entity)
+                        if ($entity.LastMapState -eq ($data.Map -join "")) {
+                            $path = $null
+                        } else {
+                            $path = $this.ShortestPathToEnemy($entity)
+                            $entity.LastPath = $path
+                            $entity.LastMapState = ($data.Map -join "")
+                        }
                         if ($path) {
                             #Write-Host $entity,"Move",$path.Count
                             $this.MoveEntity($entity,$path[1].x,$path[1].y)
@@ -149,14 +161,21 @@ function parseData ($data) {
                         }
                     }
                     if ($this.HasEnemyNeighbour($entity)) {
+                        $t = $entity.t
+                        if ($t -eq "E") {
+                            $a = $attack
+                        } else {
+                            $a = 3
+                        }
                         $target = $this.GetEnemyNeighbour($entity)
                         #Write-Host $entity,"Fight",$target
-                        if ($target.h -le 3) {
+                        if ($target.h -le $a) {
+                            if ($t -eq "G" -and $attack -gt 3) {return}
                             $target.h=0
                             updateMap $this.Map $target.x $target.y "."
                             $this.BringOutYourDead()
                         } else {
-                            $target.h = $target.h -3
+                            $target.h = $target.h - $a
                         }
                     }
                 }
@@ -301,24 +320,24 @@ cls
 
 #Part 1
 
-$start = Get-Date
+#$start = Get-Date
 
-$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.data) )
-Write-Host "Initially:" -ForegroundColor Magenta
-$data.DrawState()
-$rounds = $data.Run()
-$data.DrawState()
-$totalHP = ($data.Entities().h | measure -Sum).Sum
-if ($data.Entities()[0].t -eq "E") {
-    $t = "Elves"
-} else {
-    $t = "Goblins"
-}
-Write-Host "Combat ends after $rounds full rounds"
-Write-Host "$t win with $totalHP total hitpoints left"
-Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP))
+#$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.data) )
+#Write-Host "Initially:" -ForegroundColor Magenta
+#$data.DrawState()
+#$rounds = $data.Run()
+#$data.DrawState()
+#$totalHP = ($data.Entities().h | measure -Sum).Sum
+#if ($data.Entities()[0].t -eq "E") {
+#    $t = "Elves"
+#} else {
+#    $t = "Goblins"
+#}
+#Write-Host "Combat ends after $rounds full rounds"
+#Write-Host "$t win with $totalHP total hitpoints left"
+#Write-Host ("Outcome: {0} * {1} = {2}" -f $rounds,$totalHP,($rounds*$totalHP))
 
-Write-Host ("Part 1 took {1:0.0000} seconds" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+#Write-Host ("Part 1 took {1:0.0000} seconds" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 
 
@@ -326,5 +345,15 @@ Write-Host ("Part 1 took {1:0.0000} seconds" -f (Get-Date).Subtract($start).Tota
 
 $start = Get-Date
 
-Write-Host ("Part 2 = {0} ({1:0.0000})" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+$attack = 3
+do {
+    $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day15.data) )
+    write-host (++$attack)
+    $rounds = $data.Run($attack)
+} until ($data.GameOver -and $data.Entities()[0].t -eq "E")
 
+Write-Host ("Part 2 = Attack:{0} ({1:0.0000})" -f $attack,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+$totalHP = ($data.Entities().h | measure -Sum).Sum
+Write-Host "combat ends after $rounds full rounds"
+Write-Host "Elves win with $totalhp total hitpoints left"
+Write-Host ("outcome: {0} * {1} = {2}" -f $rounds,$totalhp,($rounds*$totalhp))

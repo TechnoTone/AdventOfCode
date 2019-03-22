@@ -199,4 +199,6 @@ $data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\day16.data) |
 
 $device.RunProgram($data)
 
+$answer2 = $device.R[0]
+
 Write-Host ("Part 2 = {0} ({1:0.0000})" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan

@@ -29,6 +29,7 @@ function parseData($data) {
 $device = [PSCustomObject]@{
     R = @(0,0,0,0)
     I = @()
+    OpCodes = @{}
 } | Add-Member -PassThru -MemberType ScriptMethod -Name "Init" -Value {
     param($r1,$r2,$r3,$r4)
     if ($r1 -is [Array]) {
@@ -107,9 +108,15 @@ $device = [PSCustomObject]@{
     #eqrr (equal register/register) sets register C to 1 if register A is equal to register B. Otherwise, register C is set to 0.
     param ($A,$B,$C)
     $this.R[$C] = [int]($this.R[$A] -eq $this.R[$B])
+} | Add-Member -PassThru -MemberType ScriptMethod -Name "RunProgram" -Value {
+    param ($data)
+    foreach ($d in $data) {
+        $op = $this.OpCodes[$d.I]
+        $this.$op($d.A,$d.B,$d.C)
+    }
 }
 
-$device.I = $device | gm -MemberType ScriptMethod | select -ExpandProperty Name | ? {$_ -notmatch "Equals|Init"}
+$device.I = "addf,addi,bani,banr,bori,borr,eqir,eqri,eqrr,gtir,gtri,gtrr,muli,mulr,seti,setr" -split ","
 
 
 function testDevice ($test) {
@@ -144,7 +151,7 @@ $start = Get-Date
 
 $answer1 = 0
 
-$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\day16.examples.txt) )
+$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\day16.examples) )
 $data | % {
 
     $instructions = testDevice $_
@@ -163,6 +170,33 @@ Write-Host ("Part 1 = {0} ({1:0.0000})" -f $answer1,(Get-Date).Subtract($start).
 
 $start = Get-Date
 
+$results = $data | % {[PSCustomObject]@{Inst=$_.Inst[0];Ops=(testDevice $_)}} | sort Inst -Unique
+
+$ops = $device.I
+$opcodes = @{}
+
+
+while ($ops) {
+
+    foreach ($op in (($results | ? {$_.ops.count -eq 1}).ops | select -Unique)) {
+        $n = ($results | ? {$_.ops.count -eq 1 -and $_.ops -eq $op}) | % {$_.Inst} | select -Unique
+        if ($n.Count -gt 1) {
+            Write-Host "ERROR!" -ForegroundColor Red
+            return
+        } else {
+            $opCodes[$n] = $op
+            $results | % {$_.ops = $_.ops | ? {$_ -ne $op}}
+            $ops = $ops | ? {$_ -ne $op}
+        }
+    }
+}
+
+$device.OpCodes = $opCodes
+$device.Init(0,0,0,0)
+
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\day16.data) | 
+            % {$d = $_ -split " "; [PSCustomObject]@{I=[int]$d[0];A=[int]$d[1];B=[int]$d[2];C=[int]$d[3]}}
+
+$device.RunProgram($data)
+
 Write-Host ("Part 2 = {0} ({1:0.0000})" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
-
-

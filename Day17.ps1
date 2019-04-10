@@ -1,4 +1,5 @@
 
+$cellInvalid = ' '
 $cellEmpty = '.'
 $cellClay = '#'
 $cellSpring = '+'
@@ -18,6 +19,10 @@ function parseCoordinates($lines) {
             }
         }
     }
+}
+
+function nLoc($x,$y){
+    [PSCustomObject]@{x=$x;y=$y}
 }
 
 function parseData($lines) {
@@ -49,9 +54,13 @@ function parseData($lines) {
         height=$dy
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "getCell" -Value {
         param ($x,$y)
-        $x = $x-$this.xmin
-        $y = $y-$this.yMin
-        $this.grid[$y][$x]
+        if ($this.validCell($x,$y)) {
+            $x = $x-$this.xmin
+            $y = $y-$this.yMin
+            $this.grid[$y][$x]
+        } else {
+            $cellInvalid
+        }
     } | Add-Member -PassThru -MemberType ScriptMethod -Name "setCell" -Value {
         param ($x,$y,$value)
         $x = $x-($this.xMin)
@@ -59,9 +68,68 @@ function parseData($lines) {
         $this.grid[$y] = ($this.grid[$y]).Remove($x,1).Insert($x,$value)
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "displayGrid" -Value {
         $this.grid
+    } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "validCell" -Value {
+        param ($x,$y)
+        $x -ge $this.xMin -and $x -le $this.xMax -and $y -ge $this.yMin -and $y -le $this.yMax
+    } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flow" -Value {
+        param ($x,$y)
+        $this.setCell($x, $y, $cellSpring)
+        $route = New-Object System.Collections.Stack
+        $queue = New-Object System.Collections.Queue
+        if ($this.getCell($x,($y+1)) -ne $cellClay) {
+            $queue.Enqueue((nLoc $x ($y+1)))
+        } else {
+            if ($this.getCell(($x-1),$y) -ne $cellClay) {
+                $queue.Enqueue((nLoc ($x-1) $y))
+            }
+            if ($this.getCell(($x+1),$y) -ne $cellClay) {
+                $queue.Enqueue((nLoc ($x+1) $y))
+            }
+        }
+        
+        cls
+        $this.grid | oh
+        while ($queue.Count) {
+            $next = $queue.Dequeue();
+            $x = $next.x
+            $y = $next.y
+            if ($this.getCell($x,($y+1)) -eq $cellEmpty) {
+                $this.setCell($x,$y,$cellWaterFalling)
+                $route.Push((nLoc $x,$y))
+                $queue.Enqueue((nLoc $x ($y+1)))
+            } else {
+                $this.setCell($x,$y,$cellWaterFlat)
+                $route.Push((nLoc $x,$y))
+                if ($this.getCell(($x-1),$y) -eq $cellEmpty) {
+                    $queue.Enqueue((nLoc ($x-1) $y))
+                }
+                if ($this.getCell(($x+1),$y) -eq $cellEmpty) {
+                    $queue.Enqueue((nLoc ($x+1) $y))
+                } else {
+                    $r = $route.ToArray()
+                    $i = $r.Count-1
+                    while ($i -ge 0 -and $this.getCell(($r[$i].x),($r[$i].y)) -ne $cellWaterFalling) {
+                        $i--
+                    }
+                    $x = $r[$i].x
+                    $y = $r[$i].y
+                    if ($this.getCell($x,$y) -eq $cellWaterFalling) {
+                        $this.setCell($x,$y,$cellWaterFlat)
+                        if ($this.getCell(($x-1),$y) -eq $cellEmpty) {
+                            $queue.Enqueue((nLoc ($x-1) $y))
+                        }
+                        if ($this.getCell(($x+1),$y) -eq $cellEmpty) {
+                            $queue.Enqueue((nLoc ($x+1) $y))
+                        }
+                    }
+                }
+            }
+            cls
+            $this.grid | oh
+            #pause
+        }
     }
 
-    $data.setCell(500, 0, $cellSpring)
     
     $coords | % { $data.setCell( $_.X, $_.Y, $cellClay ) }
 
@@ -74,6 +142,7 @@ $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.t
 
 
 $data
+$data.flow(500,0)
 
 return
 #Examples

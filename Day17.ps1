@@ -95,21 +95,22 @@ function parseData($lines) {
             $y = $next.y
             if ($this.getCell($x,($y+1)) -eq $cellEmpty) {
                 $this.setCell($x,$y,$cellWaterFalling)
-                $route.Push((nLoc $x,$y))
+                $route.Push((nLoc $x $y))
                 $queue.Enqueue((nLoc $x ($y+1)))
             } else {
                 $this.setCell($x,$y,$cellWaterFlat)
-                $route.Push((nLoc $x,$y))
+                $route.Push((nLoc $x $y))
                 if ($this.getCell(($x-1),$y) -eq $cellEmpty) {
                     $queue.Enqueue((nLoc ($x-1) $y))
                 }
                 if ($this.getCell(($x+1),$y) -eq $cellEmpty) {
                     $queue.Enqueue((nLoc ($x+1) $y))
-                } else {
+                }
+                if ($queue.Count -eq 0) {
                     $r = $route.ToArray()
-                    $i = $r.Count-1
-                    while ($i -ge 0 -and $this.getCell(($r[$i].x),($r[$i].y)) -ne $cellWaterFalling) {
-                        $i--
+                    $i = 0
+                    while ($i -le $r.Count -and $this.getCell(($r[$i].x),($r[$i].y)) -ne $cellWaterFalling) {
+                        $i++
                     }
                     $x = $r[$i].x
                     $y = $r[$i].y

@@ -74,68 +74,51 @@ function parseData($lines) {
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flow" -Value {
         param ($x,$y)
         $this.setCell($x, $y, $cellSpring)
-        $route = New-Object System.Collections.Stack
-        $queue = New-Object System.Collections.Queue
-        if ($this.getCell($x,($y+1)) -ne $cellClay) {
-            $queue.Enqueue((nLoc $x ($y+1)))
-        } else {
-            if ($this.getCell(($x-1),$y) -ne $cellClay) {
-                $queue.Enqueue((nLoc ($x-1) $y))
-            }
-            if ($this.getCell(($x+1),$y) -ne $cellClay) {
-                $queue.Enqueue((nLoc ($x+1) $y))
-            }
-        }
-        
+        $result = $this.flowDown($x,$y+1)
         cls
         $this.grid | oh
-        while ($queue.Count) {
-            $next = $queue.Dequeue();
-            $x = $next.x
-            $y = $next.y
-            if ($this.getCell($x,($y+1)) -eq $cellEmpty) {
-                $this.setCell($x,$y,$cellWaterFalling)
-                $route.Push((nLoc $x $y))
-                $queue.Enqueue((nLoc $x ($y+1)))
-            } else {
-                $this.setCell($x,$y,$cellWaterFlat)
-                $route.Push((nLoc $x $y))
-                if ($this.getCell(($x-1),$y) -eq $cellEmpty) {
-                    $queue.Enqueue((nLoc ($x-1) $y))
-                }
-                if ($this.getCell(($x+1),$y) -eq $cellEmpty) {
-                    $queue.Enqueue((nLoc ($x+1) $y))
-                }
-                if ($queue.Count -eq 0) {
-                    $r = $route.ToArray()
-                    $i = 0
-                    while ($i -le $r.Count -and $this.getCell(($r[$i].x),($r[$i].y)) -ne $cellWaterFalling) {
-                        $i++
-                    }
-                    $x = $r[$i].x
-                    $y = $r[$i].y
-                    if ($this.getCell($x,$y) -eq $cellWaterFalling) {
-                        $this.setCell($x,$y,$cellWaterFlat)
-                        if ($this.getCell(($x-1),$y) -eq $cellEmpty) {
-                            $queue.Enqueue((nLoc ($x-1) $y))
-                        }
-                        if ($this.getCell(($x+1),$y) -eq $cellEmpty) {
-                            $queue.Enqueue((nLoc ($x+1) $y))
-                        }
-                    }
-                }
-            }
-            cls
-            $this.grid | oh
-            #pause
+        Write-Host $result
+        #pause
+    } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flowDown" -Value {
+        param ($x,$y)
+        $cell = $this.getCell($x,$y)
+        if ($cell -eq $cellInvalid) { return $true }
+        elseif ($cell -eq $cellEmpty) {
+            $this.setCell($x, $y, $cellWaterFalling)
+            if ($this.flowDown($x,$y+1)) { return $true }
+            $l = $this.flowLeft($x-1,$y)
+            $r = $this.flowRight($x+1,$y)
+            if ($l -or $r) { return $true}
+            $this.setCell($x, $y, $cellWaterFlat)
         }
+        return $false
+    } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flowLeft" -Value {
+        param ($x,$y)
+        $cell = $this.getCell($x,$y)
+        if ($cell -eq $cellInvalid) { return $true }
+        elseif ($cell -eq $cellEmpty) {
+            $this.setCell($x, $y, $cellWaterFalling)
+            if ($this.flowDown($x,$y+1)) { return $true }
+            if ($this.flowLeft($x-1,$y)) { return $true }
+            $this.setCell($x, $y, $cellWaterFlat)
+        }
+        return $false
+    } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flowRight" -Value {
+        param ($x,$y)
+        $cell = $this.getCell($x,$y)
+        if ($cell -eq $cellInvalid) { return $true }
+        elseif ($cell -eq $cellEmpty) {
+            $this.setCell($x, $y, $cellWaterFalling)
+            if ($this.flowDown($x,$y+1)) { return $true }
+            if ($this.flowRight($x+1,$y)) { return $true }
+            $this.setCell($x, $y, $cellWaterFlat)
+        }
+        return $false
     }
-
     
     $coords | % { $data.setCell( $_.X, $_.Y, $cellClay ) }
-
+    
     return $data
-        
 }
 
 

@@ -71,14 +71,12 @@ function parseData($lines) {
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "validCell" -Value {
         param ($x,$y)
         $x -ge $this.xMin -and $x -le $this.xMax -and $y -ge $this.yMin -and $y -le $this.yMax
+    } | Add-Member -PassThru -MemberType ScriptProperty -Force -Name "waterCellCount" -Value {
+        return ($this.grid | % {$_.ToCharArray() | ? {$_ -in ($cellWaterFalling,$cellWaterFlat)}}).Count
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flow" -Value {
         param ($x,$y)
         $this.setCell($x, $y, $cellSpring)
-        $result = $this.flowDown($x,$y+1)
-        cls
-        $this.grid | oh
-        Write-Host $result
-        #pause
+        return $this.flowDown($x,$y+1)
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flowDown" -Value {
         param ($x,$y)
         $cell = $this.getCell($x,$y)
@@ -122,15 +120,16 @@ function parseData($lines) {
 }
 
 
-$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.test) )
+#Example
+#$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.test) )
 
+#$data
+#if ($data.flow(500,0)) {
+#    $data.displayGrid()
+#    Write-Host $data.waterCellCount -ForegroundColor Cyan
+#}
 
-$data
-$data.flow(500,0)
-
-return
-#Examples
-
+#return
 
 
 
@@ -138,8 +137,19 @@ return
 
 $start = Get-Date
 
-Write-Host ("Part 1 = {0} ({1:0.0000})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.data) )
 
+cls
+$data
+$data.displayGrid()
+if ($data.flow(500,0)) {
+    $data.displayGrid()
+    Write-Host $data.waterCellCount -ForegroundColor Cyan
+}
+
+Write-Host ("Part 1 ({1:0.0000})" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+
+return
 
 
 #Part 2

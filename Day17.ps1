@@ -3,8 +3,14 @@ $cellInvalid = ' '
 $cellEmpty = '.'
 $cellClay = '#'
 $cellSpring = '+'
+$cellWater = '$'
 $cellWaterFalling = '|'
 $cellWaterFlat = '~'
+
+$left = -1
+$right = 1
+
+$queue = New-Object System.Collections.Queue
 
 
 function parseCoordinates($lines) {
@@ -76,42 +82,66 @@ function parseData($lines) {
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flow" -Value {
         param ($x,$y)
         $this.setCell($x, $y, $cellSpring)
-        return $this.flowDown($x,$y+1)
-    } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flowDown" -Value {
+        $n = 0
+        do {Write-Host (++$n)} until ($this.addWater($x,$y+1))
+    } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "addWater" -Value {
         param ($x,$y)
-        $cell = $this.getCell($x,$y)
-        if ($cell -eq $cellInvalid) { return $true }
-        elseif ($cell -eq $cellEmpty) {
-            $this.setCell($x, $y, $cellWaterFalling)
-            if ($this.flowDown($x,$y+1)) { return $true }
-            $l = $this.flowLeft($x-1,$y)
-            $r = $this.flowRight($x+1,$y)
-            if ($l -or $r) { return $true}
-            $this.setCell($x, $y, $cellWaterFlat)
-        }
-        return $false
-    } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flowLeft" -Value {
-        param ($x,$y)
-        $cell = $this.getCell($x,$y)
-        if ($cell -eq $cellInvalid) { return $true }
-        elseif ($cell -eq $cellEmpty) {
-            $this.setCell($x, $y, $cellWaterFalling)
-            if ($this.flowDown($x,$y+1)) { return $true }
-            if ($this.flowLeft($x-1,$y)) { return $true }
-            $this.setCell($x, $y, $cellWaterFlat)
-        }
-        return $false
-    } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flowRight" -Value {
-        param ($x,$y)
-        $cell = $this.getCell($x,$y)
-        if ($cell -eq $cellInvalid) { return $true }
-        elseif ($cell -eq $cellEmpty) {
-            $this.setCell($x, $y, $cellWaterFalling)
-            if ($this.flowDown($x,$y+1)) { return $true }
-            if ($this.flowRight($x+1,$y)) { return $true }
-            $this.setCell($x, $y, $cellWaterFlat)
-        }
-        return $false
+        $direction = $null
+        $queue.Clear()
+        do {
+            
+            $cell = $this.getCell($x,$y)
+            if ($cell -eq $cellWaterFalling) {return $true}               # END!
+
+            $cellNext = $this.getCell($x,$y+1)
+            if ($cellNext -in ($cellInvalid,$cellWaterFalling)) {         # END!
+                $this.setCell($x,$y,$cellWaterFalling)
+                if ($queue.Count -eq 0) {
+                    return $true
+                } else {
+                    $q = $queue.Dequeue()
+                    $x = $q.x
+                    $y = $q.y
+                    $direction = $q.direction
+                }
+            } elseif($cellNext -in ($cellEmpty,$cellWater)) {             # flowing down
+                if ($cell -eq $cellEmpty) {$this.setCell($x,$y,$cellWater)}
+                $y++
+                $direction = $null
+            } else {                                                      # on clay or still water
+
+                $cellNext = $this.getCell($x-1,$y) #######
+                if ($cellNext -in ($cellEmpty,$cellWater)
+                
+
+
+
+                if ($direction -eq $null) {
+                    $direction = $left
+                    $queue.Enqueue([PSCustomObject]@{x = $x;y = $y;direction = $right})
+                }
+
+                if ($cell -eq $cellEmpty) {$this.setCell($x,$y,$cellWater)}
+
+                $cellNext = $this.getCell($x+$direction,$y)
+                if ($cellNext -in ($cellInvalid,$cellWaterFalling)) {     # END!
+                    $this.setCell($x,$y,$cellWaterFalling)
+                    if ($queue.Count -eq 0) {
+                        return $true
+                    } else {
+                        $q = $queue.Dequeue()
+                        $x = $q.x
+                        $y = $q.y
+                        $direction = $q.direction
+                    }
+                } elseif ($cellNext -in ($cellEmpty, $cellWater)) {       # flowing across
+                    if ($cell -eq $cellEmpty) {$this.setCell($x,$y,$cellWater)}
+                    $x += $direction
+                } else {                                                  # clay
+                    
+                }
+            }
+        } until (0)
     }
     
     $coords | % { $data.setCell( $_.X, $_.Y, $cellClay ) }
@@ -121,15 +151,14 @@ function parseData($lines) {
 
 
 #Example
-#$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.test) )
+$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.test) )
 
-#$data
-#if ($data.flow(500,0)) {
-#    $data.displayGrid()
-#    Write-Host $data.waterCellCount -ForegroundColor Cyan
-#}
+$data
+$data.flow(500,0)
+$data.displayGrid()
+Write-Host $data.waterCellCount -ForegroundColor Cyan
 
-#return
+return
 
 
 

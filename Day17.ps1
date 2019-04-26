@@ -3,7 +3,6 @@ $cellInvalid = ' '
 $cellEmpty = '.'
 $cellClay = '#'
 $cellSpring = '+'
-$cellWater = '$'
 $cellWaterFalling = '|'
 $cellWaterFlat = '~'
 
@@ -82,12 +81,13 @@ function parseData($lines) {
         $n = 0
         $result = 0
         do {
-            $this.displayGrid()
-            Write-Host $n
-            $result = $this.addWater($x,$y+1)
-            $n = $n + $result
+            #$this.displayGrid()
+            #Write-Host $result
+            $n = $this.addWater($x,$y+1)
+            $result += $n
         }
-        while ($result)
+        while ($n)
+        return $result
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "addWater" -Value {
         param ($x,$y)
 
@@ -102,12 +102,7 @@ function parseData($lines) {
                 return 1
            }
             
-            if ($cell -eq $cellEmpty) {
-                $this.setCell($x,$y,$cellWater)
-                $cell = $cellWater
-            }
-
-            if ($cellNext -in ($cellEmpty,$cellWater)) {                  # flowing down
+            if ($cellNext -eq $cellEmpty) {                               # flowing down
                 $y++
                 $direction = $null
                 continue
@@ -126,15 +121,13 @@ function parseData($lines) {
             }
             $cellRight = $this.getCell($right,$y+1)
 
-            if ($cellLeft -in ($cellEmpty,$cellWater)) {
-                $this.setCell($left,$y,($cellWater * ($x-$left+1)))
+            if ($cellLeft -eq $cellEmpty) {
                 $x = $left
                 $y = $y+1
                 continue
             }
 
-            if ($cellRight -in ($cellEmpty,$cellWater)) {
-                $this.setCell($x,$y,($cellWater * ($right-$x+1)))
+            if ($cellRight -eq $cellEmpty) {
                 $x = $right
                 $y = $y+1
                 continue
@@ -160,6 +153,7 @@ function parseData($lines) {
             ### THIS SHOULD NEVER HAPPEN !!
             write-host "==============" -ForegroundColor Cyan
             $this.displayGrid()
+            Write-Host $x,$y
             continue 
 
         } until (0)
@@ -176,9 +170,11 @@ cls
 $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.test) )
 
 $data
-$data.flow(500,0)
 $data.displayGrid()
-Write-Host $data.waterCellCount -ForegroundColor Cyan
+$result = $data.flow(500,0)
+Write-Host $result -ForegroundColor Cyan
+$data.displayGrid()
+Write-Host $result -ForegroundColor Cyan
 
 return
 
@@ -193,10 +189,10 @@ $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.d
 cls
 $data
 $data.displayGrid()
-if ($data.flow(500,0)) {
-    $data.displayGrid()
-    Write-Host $data.waterCellCount -ForegroundColor Cyan
-}
+$result = $data.flow(500,0)
+Write-Host $result -ForegroundColor Cyan
+$data.displayGrid()
+Write-Host $result -ForegroundColor Cyan
 
 Write-Host ("Part 1 ({1:0.0000})" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 

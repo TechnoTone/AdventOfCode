@@ -30,12 +30,13 @@ function nLoc($x,$y){
 function parseData($lines) {
 
     $coords = parseCoordinates $lines
-    $xMin = ($coords.X | Measure-Object -Minimum).Minimum
-    $xMax = ($coords.X | Measure-Object -Maximum).Maximum
-    $yMin = ($coords.Y | Measure-Object -Minimum).Minimum
+    $xMin = ($coords.X | Measure-Object -Minimum).Minimum - 1
+    $xMax = ($coords.X | Measure-Object -Maximum).Maximum + 1
+    #$yMin = ($coords.Y | Measure-Object -Minimum).Minimum
     $yMax = ($coords.Y | Measure-Object -Maximum).Maximum
 
-    if ($yMin -gt 0) {$yMin = 0}
+    #if ($yMin -gt 0) {$yMin = 0}
+    $yMin = 0
 
     $dx = $xMax - $xMin
     $dy = $yMax - $yMin
@@ -81,10 +82,10 @@ function parseData($lines) {
         $n = 0
         $result = 0
         do {
-            #$this.displayGrid()
-            #Write-Host $result
             $n = $this.addWater($x,$y+1)
             $result += $n
+            #$this.displayGrid()
+            Write-Host $result
         }
         while ($n)
         return $result
@@ -152,7 +153,6 @@ function parseData($lines) {
 
             ### THIS SHOULD NEVER HAPPEN !!
             write-host "==============" -ForegroundColor Cyan
-            $this.displayGrid()
             Write-Host $x,$y
             continue 
 
@@ -169,14 +169,11 @@ function parseData($lines) {
 cls
 $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.test) )
 
-$data
 $data.displayGrid()
 $result = $data.flow(500,0)
 Write-Host $result -ForegroundColor Cyan
 $data.displayGrid()
 Write-Host $result -ForegroundColor Cyan
-
-return
 
 
 
@@ -187,14 +184,10 @@ $start = Get-Date
 $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.data) )
 
 cls
-$data
-$data.displayGrid()
 $result = $data.flow(500,0)
 Write-Host $result -ForegroundColor Cyan
-$data.displayGrid()
-Write-Host $result -ForegroundColor Cyan
 
-Write-Host ("Part 1 ({1:0.0000})" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+Write-Host ("Part 1 ({0:0.0000})" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 return
 
@@ -203,6 +196,4 @@ return
 
 $start = Get-Date
 
-Write-Host ("Part 2 = {0} ({1:0.0000})" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
-
-
+Write-Host ("Part 1 ({0:0.0000})" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan

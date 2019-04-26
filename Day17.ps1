@@ -10,9 +10,6 @@ $cellWaterFlat = '~'
 $left = -1
 $right = 1
 
-$queue = New-Object System.Collections.Queue
-
-
 function parseCoordinates($lines) {
     foreach ($line in $lines) {
         $values = ($line -split ", ") | % {($_ -split "=")[1]}
@@ -71,9 +68,9 @@ function parseData($lines) {
         param ($x,$y,$value)
         $x = $x-($this.xMin)
         $y = $y-($this.yMin)
-        $this.grid[$y] = ($this.grid[$y]).Remove($x,1).Insert($x,$value)
+        $this.grid[$y] = ($this.grid[$y]).Remove($x,($value.Length)).Insert($x,$value)
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "displayGrid" -Value {
-        $this.grid
+        $this.grid | Out-Host
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "validCell" -Value {
         param ($x,$y)
         $x -ge $this.xMin -and $x -le $this.xMax -and $y -ge $this.yMin -and $y -le $this.yMax
@@ -83,64 +80,88 @@ function parseData($lines) {
         param ($x,$y)
         $this.setCell($x, $y, $cellSpring)
         $n = 0
-        do {Write-Host (++$n)} until ($this.addWater($x,$y+1))
+        $result = 0
+        do {
+            $this.displayGrid()
+            Write-Host $n
+            $result = $this.addWater($x,$y+1)
+            $n = $n + $result
+        }
+        while ($result)
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "addWater" -Value {
         param ($x,$y)
-        $direction = $null
-        $queue.Clear()
+
+        if ($this.getCell($x,$y) -eq $cellWaterFalling) {return 0}    # END!
+
         do {
             
             $cell = $this.getCell($x,$y)
-            if ($cell -eq $cellWaterFalling) {return $true}               # END!
-
             $cellNext = $this.getCell($x,$y+1)
             if ($cellNext -in ($cellInvalid,$cellWaterFalling)) {         # END!
                 $this.setCell($x,$y,$cellWaterFalling)
-                if ($queue.Count -eq 0) {
-                    return $true
-                } else {
-                    $q = $queue.Dequeue()
-                    $x = $q.x
-                    $y = $q.y
-                    $direction = $q.direction
-                }
-            } elseif($cellNext -in ($cellEmpty,$cellWater)) {             # flowing down
-                if ($cell -eq $cellEmpty) {$this.setCell($x,$y,$cellWater)}
+                return 1
+           }
+            
+            if ($cell -eq $cellEmpty) {
+                $this.setCell($x,$y,$cellWater)
+                $cell = $cellWater
+            }
+
+            if ($cellNext -in ($cellEmpty,$cellWater)) {                  # flowing down
                 $y++
                 $direction = $null
-            } else {                                                      # on clay or still water
-
-                $cellNext = $this.getCell($x-1,$y) #######
-                if ($cellNext -in ($cellEmpty,$cellWater)
-                
-
-
-
-                if ($direction -eq $null) {
-                    $direction = $left
-                    $queue.Enqueue([PSCustomObject]@{x = $x;y = $y;direction = $right})
-                }
-
-                if ($cell -eq $cellEmpty) {$this.setCell($x,$y,$cellWater)}
-
-                $cellNext = $this.getCell($x+$direction,$y)
-                if ($cellNext -in ($cellInvalid,$cellWaterFalling)) {     # END!
-                    $this.setCell($x,$y,$cellWaterFalling)
-                    if ($queue.Count -eq 0) {
-                        return $true
-                    } else {
-                        $q = $queue.Dequeue()
-                        $x = $q.x
-                        $y = $q.y
-                        $direction = $q.direction
-                    }
-                } elseif ($cellNext -in ($cellEmpty, $cellWater)) {       # flowing across
-                    if ($cell -eq $cellEmpty) {$this.setCell($x,$y,$cellWater)}
-                    $x += $direction
-                } else {                                                  # clay
-                    
-                }
+                continue
             }
+                                                                          # on clay or still water
+            $left=$x
+            $right=$x
+
+            while ($this.getCell($left-1,$y) -ne $cellClay -and $this.getCell($left,$y+1) -in ($cellClay,$cellWaterFlat)) {
+                $left--
+            }
+            $cellLeft = $this.getCell($left,$y+1)
+
+            while ($this.getCell($right+1,$y) -ne $cellClay -and $this.getCell($right,$y+1) -in ($cellClay,$cellWaterFlat)) {
+                $right++
+            }
+            $cellRight = $this.getCell($right,$y+1)
+
+            if ($cellLeft -in ($cellEmpty,$cellWater)) {
+                $this.setCell($left,$y,($cellWater * ($x-$left+1)))
+                $x = $left
+                $y = $y+1
+                continue
+            }
+
+            if ($cellRight -in ($cellEmpty,$cellWater)) {
+                $this.setCell($x,$y,($cellWater * ($right-$x+1)))
+                $x = $right
+                $y = $y+1
+                continue
+            }
+
+            if ($cellLeft -eq $cellWaterFalling -and $cellRight -eq $cellWaterFalling) {
+                $this.setCell($left,$y,($cellWaterFalling * ($right-$left+1)))
+                return ($right-$left+1)
+            }
+
+            if (($cellLeft -eq $cellWaterFalling -and $cellRight -eq $cellWaterFlat) -or 
+                ($cellLeft -eq $cellWaterFlat -and $cellRight -eq $cellWaterfalling)) {
+                $this.setCell($left,$y,($cellWaterFalling * ($right-$left+1)))
+                return ($right-$left+1)
+            }
+
+            if ($cellLeft -in ($cellClay,$cellWaterFlat) -and $cellRight -in ($cellClay,$cellWaterFlat)) {
+                $this.setCell($left,$y,($cellWaterFlat * ($right-$left+1)))
+                return ($right-$left+1)
+            }
+
+
+            ### THIS SHOULD NEVER HAPPEN !!
+            write-host "==============" -ForegroundColor Cyan
+            $this.displayGrid()
+            continue 
+
         } until (0)
     }
     
@@ -151,6 +172,7 @@ function parseData($lines) {
 
 
 #Example
+cls
 $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.test) )
 
 $data

@@ -32,11 +32,8 @@ function parseData($lines) {
     $coords = parseCoordinates $lines
     $xMin = ($coords.X | Measure-Object -Minimum).Minimum - 1
     $xMax = ($coords.X | Measure-Object -Maximum).Maximum + 1
-    #$yMin = ($coords.Y | Measure-Object -Minimum).Minimum
+    $yMin = ($coords.Y | Measure-Object -Minimum).Minimum
     $yMax = ($coords.Y | Measure-Object -Maximum).Maximum
-
-    #if ($yMin -gt 0) {$yMin = 0}
-    $yMin = 0
 
     $dx = $xMax - $xMin
     $dy = $yMax - $yMin
@@ -78,9 +75,14 @@ function parseData($lines) {
         return ($this.grid | % {$_.ToCharArray() | ? {$_ -in ($cellWaterFalling,$cellWaterFlat)}}).Count
     } | Add-Member -PassThru -MemberType ScriptMethod -Force -Name "flow" -Value {
         param ($x,$y)
-        $this.setCell($x, $y, $cellSpring)
-        $n = 0
-        $result = 0
+        if ($y -lt $this.yMin) {
+            $y = $this.yMin 
+            $this.setCell($x, $y, $cellWaterFalling)
+            $result = 1
+        } else {
+            $this.setCell($x, $y, $cellSpring)
+            $result = 0
+        }
         do {
             $n = $this.addWater($x,$y+1)
             $result += $n
@@ -182,18 +184,12 @@ Write-Host $result -ForegroundColor Cyan
 $start = Get-Date
 
 $data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day17.data) )
-
 cls
 $result = $data.flow(500,0)
-Write-Host $result -ForegroundColor Cyan
-
-Write-Host ("Part 1 ({0:0.0000})" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
-
-return
+Write-Host ("Part 1: {0} ({1:0.0000})" -f $result,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
 
 #Part 2
 
-$start = Get-Date
-
-Write-Host ("Part 1 ({0:0.0000})" -f (Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+$result2 = ($data.grid | % {$_.ToCharArray() | ? {$_ -in ($cellWaterFlat)}}).Count
+Write-Host ("Part 2: {0} ({1:0.0000})" -f $result2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan

@@ -192,7 +192,7 @@ while ($ops) {
 $device.OpCodes = $opCodes
 $device.Init(0,0,0,0)
 
-$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\day16.data) | 
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day16.data) | 
             % {$d = $_ -split " "; [PSCustomObject]@{I=[int]$d[0];A=[int]$d[1];B=[int]$d[2];C=[int]$d[3]}}
 
 $device.RunProgram($data)

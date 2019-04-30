@@ -1,5 +1,12 @@
 
 
+if (!$device) {
+    . .\Day16.ps1
+}
+
+$device.R = @(0,0,0,0)
+
+
 #Examples
 
 

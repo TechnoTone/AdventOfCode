@@ -1,15 +1,15 @@
 
 
-$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day19.data)
-
-
-
 #Examples
 
 
 
 
 #Part 1
+
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day19.data)
+cls
+$data
 
 $start = Get-Date
 

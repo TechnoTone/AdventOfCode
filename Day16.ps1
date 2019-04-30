@@ -28,7 +28,7 @@ function parseData($data) {
 
 $device = [PSCustomObject]@{
     R = @(0,0,0,0)
-    I = @()
+    I = "addf,addi,bani,banr,bori,borr,eqir,eqri,eqrr,gtir,gtri,gtrr,muli,mulr,seti,setr" -split ","
     OpCodes = @{}
 } | Add-Member -PassThru -MemberType ScriptMethod -Name "Init" -Value {
     param($r1,$r2,$r3,$r4)
@@ -116,8 +116,6 @@ $device = [PSCustomObject]@{
     }
 }
 
-$device.I = "addf,addi,bani,banr,bori,borr,eqir,eqri,eqrr,gtir,gtri,gtrr,muli,mulr,seti,setr" -split ","
-
 
 function testDevice ($test) {
     $A = $test.Inst[1]
@@ -151,7 +149,7 @@ $start = Get-Date
 
 $answer1 = 0
 
-$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\day16.examples) )
+$data = parseData ( cat (Join-Path ($PSCommandPath | Split-Path -Parent) .\Day16.samples) )
 $data | % {
 
     $instructions = testDevice $_

@@ -25,7 +25,11 @@ function RunProgram($instructions, $startIP = 0) {
 
 
         $log += " [{0}]" -f ($device.R -join ",")
-        Write-Host $log
+
+        #if ($host.ui.RawUI.KeyAvailable) {
+            Write-Host $log
+            $host.UI.RawUI.ReadKey() | Out-Null
+        #}
     }
 
 }

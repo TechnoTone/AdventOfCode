@@ -28,7 +28,7 @@ function parseData($data) {
 
 $device = [PSCustomObject]@{
     R = @(0,0,0,0)
-    I = "addf,addi,bani,banr,bori,borr,eqir,eqri,eqrr,gtir,gtri,gtrr,muli,mulr,seti,setr" -split ","
+    I = "addr,addi,bani,banr,bori,borr,eqir,eqri,eqrr,gtir,gtri,gtrr,muli,mulr,seti,setr" -split ","
     OpCodes = @{}
 } | Add-Member -PassThru -MemberType ScriptMethod -Name "Init" -Value {
     param($r1,$r2,$r3,$r4)
@@ -44,7 +44,7 @@ $device = [PSCustomObject]@{
     } else {
         ($this.R -join ",") -eq (@($r1,$r2,$r3,$r4) -join ",")
     }
-} | Add-Member -PassThru -MemberType ScriptMethod -Name "addf" -Value {
+} | Add-Member -PassThru -MemberType ScriptMethod -Name "addr" -Value {
     #addr (add register) stores into register C the result of adding register A and register B.
     param ($A,$B,$C)
     $this.R[$C] = $this.R[$A] + $this.R[$B]

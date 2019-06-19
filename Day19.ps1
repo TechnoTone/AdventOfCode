@@ -7,28 +7,28 @@ if (!$device) {
 $device.R = @(0,0,0,0,0,0)
 
 
-function RunProgram($instructions, $startIP = 0) {
+function RunProgram($instructions, $ipRegister = 0) {
 
-    $ip = $startIP
+    $ip = 0
 
     while ($ip -lt $instructions.Count) {
 
         $instruction = $instructions[$ip]
-        $device.R[0] = $ip
+        $device.R[$ipRegister] = $ip
 
         $log = "ip={0} [{1}] {2}" -f $ip, ($device.R -join ","), $instruction
 
         $i = $instruction -split " "
         $device.($i[0])([int]$i[1],[int]$i[2],[int]$i[3])
 
-        $ip = $device.R[0] + 1
+        $ip = $device.R[$ipRegister] + 1
 
 
         $log += " [{0}]" -f ($device.R -join ",")
 
         #if ($host.ui.RawUI.KeyAvailable) {
-            Write-Host $log
-            $host.UI.RawUI.ReadKey() | Out-Null
+            #Write-Host $log
+            #$host.UI.RawUI.ReadKey() | Out-Null
         #}
     }
 
@@ -47,8 +47,7 @@ $instructions = "seti 5 0 1
                  seti 8 0 4
                  seti 9 0 5" | Split-String -NewLine | % {$_.Trim()}
 
-RunProgram $instructions
-
+#RunProgram $instructions
 #return
 
 
@@ -62,7 +61,7 @@ cls
 
 $start = Get-Date
 
-RunProgram $data -startIP 4
+RunProgram $data -ipRegister 4
 
 $answer1 = $data.R[0]
 

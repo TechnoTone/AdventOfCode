@@ -62,11 +62,12 @@ $startRegister = [int]::Parse($data[0][-1])
 $data = $data | select -Skip 1
 cls
 
+$answer1 = $null
 $start = Get-Date
 
 RunProgram $data -ipRegister $startRegister
 
-$answer1 = $data.R[0]
+$answer1 = $device.R[0]
 
 Write-Host ("Part 1 = {0} ({1:0.0000})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 

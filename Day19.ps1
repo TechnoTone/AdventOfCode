@@ -4,9 +4,6 @@ if (!$device) {
     . .\Day16.ps1
 }
 
-$device.Init(@(0,0,0,0,0,0))
-
-
 
 function RunProgram($instructions, $ipRegister = 0) {
 
@@ -40,6 +37,8 @@ cls
 
 #Examples
 
+#$device.Init(@(0,0,0,0,0,0))
+
 #$instructions = "seti 5 0 1
 #                 seti 6 0 2
 #                 addi 0 1 0
@@ -62,21 +61,28 @@ $startRegister = [int]::Parse($data[0][-1])
 $data = $data | select -Skip 1
 cls
 
+$device.Init(@(0,0,0,0,0,0))
 $answer1 = $null
 $start = Get-Date
 
-RunProgram $data -ipRegister $startRegister
+#RunProgram $data -ipRegister $startRegister
 
-$answer1 = $device.R[0]
+#$answer1 = $device.R[0]
 
-Write-Host ("Part 1 = {0} ({1:0.0000})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+#Write-Host ("Part 1 = {0} ({1:0.0000})" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
-return
+#return
 
 
 
 #Part 2
 
+$device.Init(@(1,0,0,0,0,0))
+$answer2 = $null
 $start = Get-Date
+
+RunProgram $data -ipRegister $startRegister
+
+$answer1 = $device.R[0]
 
 Write-Host ("Part 2 = {0} ({1:0.0000})" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan

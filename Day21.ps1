@@ -5,9 +5,10 @@ if (!$device) {
 }
 
 
-function RunProgram($instructions, $ipRegister = 0) {
+function RunProgram($instructions, $ipRegister = 0, $maxSteps = 1) {
 
     $ip = 0
+    $stepCount = 0
 
     while ($ip -lt $instructions.Count) {
 
@@ -20,52 +21,47 @@ function RunProgram($instructions, $ipRegister = 0) {
         $device.($i[0])([int]$i[1],[int]$i[2],[int]$i[3])
 
         $ip = $device.R[$ipRegister] + 1
-
-
+        
         $log += " [{0}]" -f ($device.R -join ",")
 
         #if ($host.ui.RawUI.KeyAvailable) {
             Write-Host $log
-            #$host.UI.RawUI.ReadKey() | Out-Null
+            $host.UI.RawUI.ReadKey() | Out-Null
         #}
+
+        if (++$stepCount -eq $maxSteps) { return $false }
     }
 
+    return $true
 }
-
-
-cls
-
-#Examples
-
-#$device.Init(@(0,0,0,0,0,0))
-
-#$instructions = "seti 5 0 1
-#                 seti 6 0 2
-#                 addi 0 1 0
-#                 addr 1 2 3
-#                 setr 1 0 0
-#                 seti 8 0 4
-#                 seti 9 0 5" | Split-String -NewLine | % {$_.Trim()}
-
-#RunProgram $instructions
-#return
-
-
-
 
 
 #Part 1
 
-$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day19.data)
+$data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day21.data)
 $startRegister = [int]::Parse($data[0][-1])
 $data = $data | select -Skip 1
 cls
 
-$device.Init(@(0,0,0,0,0,0))
 $answer1 = $null
 $start = Get-Date
 
-RunProgram $data -ipRegister $startRegister
+$r1 = 0
+$maxSteps = 1000
+
+do {
+
+    write-host $r1 $maxSteps
+
+    $device.Init(@($r1,0,0,0,0,0))
+    $complete = RunProgram $data -ipRegister $startRegister -maxSteps $maxSteps
+
+    if (++$r1 -ge 10000) {
+        $r1 = 0
+        $maxSteps++
+    }
+    
+} until ($complete) 
 
 $answer1 = $device.R[0]
 

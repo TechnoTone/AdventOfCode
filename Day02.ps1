@@ -6,24 +6,22 @@ $data = cat (Join-Path ($PSCommandPath | Split-Path -Parent) Day02.data)
 
 $start = Get-Date
 
-$counts = @(0)*30
-
 $regEx = [regex]((97..122 | %{[char]$_+"+"}) -join "|")
 
+$twos = 0
+$threes = 0
 
 foreach ($line in $data) {
     $line = ($line.ToCharArray()|sort) -join ""
-    $regEx.Matches($line) | ? {$_.Length -gt 1} | group Length | % {
-        $counts[$_.Name] = $counts[$_.Name] + 1
-    }
+    $groupings = $regEx.Matches($line).Length 
+    if ($groupings -contains 2) { 
+        $twos ++ }
+    if ($groupings -contains 3) { 
+        $threes ++ }
 }
 
-$answer1 = 1
-$counts | % {
-    if ($_ -gt 0) {
-        $checksum *= $_
-    }
-}
+$answer1 = $twos * $threes
+
 
 Write-Host ("Part 1 = {0} ({1:0.0000} seconds)" -f $answer1,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
 
@@ -38,6 +36,7 @@ for ($i = 0; $i -lt $data.Count; $i++) {
         if (($data[$i..$data.Count] -match $line2).Count -gt 1) {
             $answer2 = $line2.Replace(".","")
             Write-Host ("Part 2 = {0} ({1:0.0000} seconds)" -f $answer2,(Get-Date).Subtract($start).TotalSeconds) -ForegroundColor Cyan
+            return
         }
     }
 }
